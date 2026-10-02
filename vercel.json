@@ -1,0 +1,11 @@
+{
+  "framework": null,
+  "buildCommand": "node outils/construire-pwa.js",
+  "outputDirectory": "pwa",
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ]
+}

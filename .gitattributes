@@ -1,0 +1,4 @@
+# Fins de ligne LF partout : les outils du projet en dépendent.
+* text=auto eol=lf
+*.woff2 binary
+*.png binary

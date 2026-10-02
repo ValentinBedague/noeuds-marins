@@ -1,0 +1,13 @@
+# Fichiers générés par outils/construire-pwa.js (Vercel les reconstruit à chaque déploiement)
+pwa/index.html
+pwa/sw.js
+pwa/manifest.webmanifest
+
+# Outils locaux
+.claude/
+.vercel/
+node_modules/
+
+# Système
+Thumbs.db
+.DS_Store
