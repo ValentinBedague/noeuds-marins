@@ -32,7 +32,8 @@ for (const knot of K.KNOTS) {
   for (const r of knot.ropes) {
     const wrong = r.frames
       ? r.frameStops.length !== knot.steps.length + 1 || r.frameStops[r.frameStops.length - 1] !== r.frames.length - 1 || r.frames.some(f => f.length !== r.frames[0].length)
-      : r.stops.length !== knot.steps.length || r.loose.length !== r.tight.length || r.stops[r.stops.length - 1] !== r.loose.length - 1;
+      // a rope tied folded in two is laid from both ends at once: its last stop is the middle of the path
+      : r.stops.length !== knot.steps.length || r.loose.length !== r.tight.length || r.stops[r.stops.length - 1] !== (r.fold ? (r.loose.length - 1) / 2 : r.loose.length - 1);
     if (wrong || knot.dur.length !== knot.steps.length) { console.log("   !! stops/points mismatch"); bad++; }
   }
   const states = [];

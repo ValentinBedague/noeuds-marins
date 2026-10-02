@@ -1000,8 +1000,113 @@ function bosse(w) {
   ]), [[0.75, 1.69, 0.526], [0.75, 2.9, -0.17]]);
 }
 
+// Two strands side by side: the path shifted by w to one side in the picture plane (to the other if w < 0).
+function beside(P, w) {
+  return P.map(function (p, i) {
+    var a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)];
+    var tx = b[0] - a[0], ty = b[1] - a[1], l = Math.sqrt(tx * tx + ty * ty) || 1;
+    return [p[0] - ty / l * w, p[1] + tx / l * w, p[2]];
+  });
+}
+// A single knot opened out so that two strands fit side by side: scaled by f about c, its crossings
+// set zf times further apart, and a longer standing part (lead) in place of its first points.
+function roomy(P, c, f, zf, lead) {
+  return lead.concat(P.slice(lead.length).map(function (p) {
+    return [c[0] + (p[0] - c[0]) * f, c[1] + (p[1] - c[1]) * f, p[2] * zf];
+  }));
+}
+// A knot tied with the rope folded in two. Both strands follow the path side by side, w from it, and
+// part at its end to form the eye: the rope runs down one strand, round the eye and back along the other
+// to a short free end (tail, in place of the first points of the path).
+// eye: half of the eye as [distance along the way out, distance to the side], the last point being its far end.
+function doubled(path, tail, w, eye) {
+  var n = path.length, e = path[n - 1], q = path[n - 2];
+  var dx = e[0] - q[0], dy = e[1] - q[1], l = Math.sqrt(dx * dx + dy * dy) || 1;
+  dx /= l; dy /= l;
+  function half(s) {
+    return eye.map(function (p) { return [e[0] + dx * p[0] - dy * p[1] * s, e[1] + dy * p[0] + dx * p[1] * s, 0]; });
+  }
+  var back = half(-1).slice(0, eye.length - 1).reverse();
+  return beside(path, w).concat(half(1), back, beside(tail.concat(path.slice(tail.length)), -w).reverse());
+}
+var EYE = [[1.0, 0.75], [2.3, 1.4], [3.7, 1.55], [4.8, 1.0], [5.25, 0]];
+// Figure-eight loop and overhand loop: the figure-eight and the overhand knot above, tied with the rope folded in two.
+function huitDouble(f, w) {
+  return doubled(roomy(HUIT_LOOSE.slice(0, 31), [-0.25, 0.1], f, 1.4, [[0, 12.5, 0], [0, 9, 0], [0, 6.2, 0.1]]),
+    [[0, 7.0, 0], [0, 6.6, 0], [0, 6.2, 0.1]], w, EYE);
+}
+function pleinPoing(f, w) {
+  return doubled(roomy(DEMI_LOOSE.slice(0, 24), [-0.3, -1.0], f, 1.4, [[0, 11, 0], [0, 7.5, 0], [0, 5.2, 0]]),
+    [[0, 6.3, 0], [0, 5.75, 0], [0, 5.2, 0]], w, EYE);
+}
+
+// Double overhand knot in its barrel shape, round a vertical axis through x = 0, z = 0. The standing part
+// runs down inside the turns, the rope coils back up round it for two turns, then the end goes down inside
+// the turns as well. o.y: height of the lowest turn, o.r: radius of the turns, o.pitch: rise per turn,
+// o.c: distance of the inner strands from the axis, o.s and o.e: where the standing part and the end sit
+// inside the turns (degrees from the front, o.e after o.s), o.top: where the rope starts, o.end: length left below the knot.
+function barrel(o) {
+  var a0 = o.s + 90, a1 = o.e + 720 - 90, y1 = o.y + o.pitch * (a1 - a0) / 360, g = o.r - o.c, L, i;
+  L = [[o.top, o.s, o.c], [(o.top + y1) / 2 + 0.6, o.s, o.c], [y1 + 1.2, o.s, o.c], [(o.y + y1) / 2 + 0.9, o.s, o.c], [o.y + 0.6, o.s, o.c],
+    [o.y + 0.2, o.s + 3, o.c + 0.05 * g], [o.y - 0.06, o.s + 22, o.c + 0.33 * g], [o.y - 0.12, o.s + 50, o.c + 0.68 * g],
+    [o.y - 0.08, o.s + 72, o.c + 0.93 * g]];
+  for (i = 0; i <= 15; i++) L.push([o.y + (y1 - o.y) * i / 15, a0 + (a1 - a0) * i / 15, o.r]);
+  L.push([y1 + 0.08, a1 + 18, o.c + 0.93 * g], [y1 + 0.12, a1 + 40, o.c + 0.68 * g], [y1 + 0.06, a1 + 68, o.c + 0.33 * g],
+    [y1 - 0.2, a1 + 87, o.c + 0.05 * g], [y1 - 0.6, a1 + 90, o.c], [o.y + 0.1, a1 + 90, o.c], [o.y - 1.0, a1 + 90, o.c],
+    [o.y - o.end, a1 + 90, o.c]);
+  return onRope(0, 0, L);
+}
+// Double fisherman's knot: each rope ties a barrel round the other. Three strands sit inside each barrel.
+var PECHEUR2_LOOSE = barrel({ y: -3.9, r: 1.12, pitch: 0.85, c: 0.34, s: 60, e: 180, top: 9, end: 2.4 });
+var PECHEUR2_TIGHT = barrel({ y: -1.45, r: 0.84, pitch: 0.52, c: 0.3, s: 60, e: 180, top: 9, end: 2.2 });
+var CAPUCIN_LOOSE = barrel({ y: -1.0, r: 1.05, pitch: 0.85, c: 0.3, s: 0, e: 180, top: 8, end: 3.2 });
+var CAPUCIN_TIGHT = barrel({ y: -0.5, r: 0.8, pitch: 0.52, c: 0.26, s: 0, e: 180, top: 8, end: 3.0 });
+
+// Cow hitch on the spar: a turn one way, a bar across the front of both hanging parts, a turn the other way.
+// a: how far apart the hanging parts are, b: how far out the turns go, d: how far the bar stands off.
+function alouette(a, b, d) {
+  return [[a, -9, SPAR], [a, -5, SPAR], [a, -2.5, SPAR], [a, -1.2, SPAR]].concat(
+    onSpar([[a, 0, SPAR], [a + 0.05, 45, SPAR], [a + (b - a) * 0.3, 90, SPAR], [a + (b - a) * 0.6, 135, SPAR],
+      [b - (b - a) * 0.2, 180, SPAR], [b - 0.03, 225, SPAR], [b, 270, SPAR]]),
+    [[b, -1.42, 0.72], [b - 0.14, -1.5, d - 0.42], [b - 0.52, -1.52, d - 0.04], [0, -1.52, d],
+      [-b + 0.52, -1.52, d - 0.04], [-b + 0.14, -1.5, d - 0.42], [-b, -1.42, 0.72]],
+    onSpar([[-b, 270, SPAR], [-b + 0.03, 225, SPAR], [-b + (b - a) * 0.2, 180, SPAR], [-a - (b - a) * 0.6, 135, SPAR],
+      [-a - (b - a) * 0.3, 90, SPAR], [-a - 0.05, 45, SPAR], [-a, 0, SPAR]]),
+    [[-a, -1.2, SPAR], [-a, -2.8, SPAR], [-a, -4.2, SPAR]]);
+}
+
+// Granny knot: a reef knot whose second half is tied the same way as the first, so that on each rope
+// one part goes over the other rope's bight and the other part under it.
+var VACHE_LOOSE = patch(PLAT_LOOSE, {
+  0: [-10, -0.5, 0], 1: [-6, -0.5, 0], 2: [-3.4, -0.5, 0.15], 3: [-2.5, -0.5, 0.33], 4: [-1.6, -0.48, 0.05],
+  11: [2.75, 0, 0], 12: [2.62, 0.62, -0.3], 13: [2.2, 1.0, -0.2], 15: [0.8, 0.85, 0.25], 16: [0, 0.7, 0.3],
+  17: [-0.8, 0.55, 0.25], 18: [-1.6, 0.48, -0.05], 19: [-2.5, 0.5, -0.33], 20: [-3.4, 0.5, -0.15], 21: [-4.6, 0.52, 0]
+});
+var VACHE_TIGHT = patch(PLAT_TIGHT, {
+  0: [-10, -0.42, 0], 1: [-6, -0.42, 0], 2: [-2.4, -0.42, 0.12], 3: [-1.25, -0.42, 0.3],
+  10: [1.42, -0.5, 0.3], 11: [1.52, 0, 0], 12: [1.42, 0.5, -0.3], 13: [1.2, 0.8, -0.2], 15: [0.42, 0.74, 0.28], 16: [0, 0.6, 0.3],
+  17: [-0.42, 0.48, 0.27], 18: [-0.85, 0.33, -0.1], 19: [-1.25, 0.42, -0.3], 20: [-2.4, 0.42, -0.12], 21: [-3.6, 0.44, 0]
+});
+
+// Two bowlines, the eye of the second passed through the eye of the first. Each eye turns an eighth of a
+// turn on the way to its far end, so that the two meet at right angles, like the links of a chain.
+// The second bowline is the first turned upside down and lowered by `drop`.
+function aguiEye(bowline) {
+  return bowline.map(function (p, i) {
+    if (i === 0) return [p[0], 7.6, p[2]];
+    if (i < 20 || i > 35) return p.slice();
+    var f = Math.min(1, Math.max(0, (-2.5 - p[1]) / 4.4)), a = f * f * (3 - 2 * f) * Math.PI / 4;
+    return [p[0] * Math.cos(a) + p[2] * Math.sin(a), p[1], p[2] * Math.cos(a) - p[0] * Math.sin(a)];
+  });
+}
+function agui(bowline, drop) {
+  return aguiEye(bowline).map(function (p) { return [-p[0], drop - p[1], p[2]]; });
+}
+
 // stops: control point reached by the working end at the start, then at the end of each step
 // before the last. The last step hauls the knot taut.
+// fold: the rope is tied folded in two. Its path runs down one strand, round the eye and back along the
+// other; the stops are counted on the first strand and the last one is the far end of the eye.
 var KNOTS = [
   {
     id: "huit", name: "Nœud en huit", family: "Nœuds d'arrêt",
@@ -1355,6 +1460,154 @@ var KNOTS = [
       { title: "Souquer",
         text: "Serrez bien les tours avant de mettre en charge." }
     ]
+  },
+  {
+    id: "huit2", name: "Nœud de huit double", family: "Nœuds de boucle",
+    legend: [{ color: "--rope-white", text: "Blanc : le dormant" }, { color: "--rope-courant", text: "Rosé : le brin replié" }],
+    usage: "Boucle fixe très sûre, en bout ou en milieu de cordage : longe, point d'accroche, boucle à mousqueton.",
+    hold: "Ne glisse pas et se contrôle d'un coup d'œil : les deux brins restent côte à côte dans tout le nœud. Plus dur à défaire qu'un nœud de chaise après une forte charge.",
+    level: "Facile",
+    target: [-0.2, -1.9, 0], fit: [10.0, 4.2], home: [0.3, 1.5], thumb: 0.92,
+    ropes: [{ look: "white", tip: "--tip-red", fold: true, loose: huitDouble(1.7, 0.29), tight: huitDouble(1.5, 0.27), stops: [4, 18, 23, 35], cut: 35 }],
+    dur: [2.4, 1.6, 2.6, 1.6],
+    steps: [
+      { title: "Plier le cordage et former une boucle",
+        text: "Pliez le cordage en deux : la ganse devient votre courant. Formez une boucle en la ramenant par-dessus les deux brins." },
+      { title: "Passer derrière les deux brins",
+        text: "Faites passer la ganse derrière les deux brins : le huit se dessine." },
+      { title: "Redescendre dans la boucle",
+        text: "Passez la ganse dans la première boucle, de l'avant vers l'arrière, et tirez-la : elle forme la boucle du nœud." },
+      { title: "Souquer",
+        text: "Rangez les deux brins côte à côte, sans croisement, puis tirez sur la boucle et sur les deux brins. Pour nouer autour d'un anneau fermé, faites un huit simple, passez le bout dans l'anneau et repassez dans le huit en suivant le premier brin." }
+    ]
+  },
+  {
+    id: "pleinpoing", name: "Nœud de plein poing", family: "Nœuds de boucle",
+    legend: [{ color: "--rope-white", text: "Blanc : le dormant" }, { color: "--rope-courant", text: "Rosé : le brin replié" }],
+    usage: "La boucle la plus rapide à faire, en bout ou en milieu de cordage, pour un usage léger et provisoire.",
+    hold: "Tient bien, mais se souque très fort : après une charge, il est souvent impossible à défaire. Pour une charge sérieuse, préférez le huit double ou le nœud de chaise.",
+    level: "Facile",
+    target: [-1.2, -1.7, 0], fit: [8.6, 4.4], home: [0.3, 1.5], thumb: 0.8,
+    ropes: [{ look: "white", tip: "--tip-red", fold: true, loose: pleinPoing(1.7, 0.29), tight: pleinPoing(1.5, 0.27), stops: [3, 16, 28], cut: 28 }],
+    dur: [2.4, 2.8, 1.6],
+    steps: [
+      { title: "Plier le cordage et former une boucle",
+        text: "Pliez le cordage en deux, puis formez une boucle avec la ganse en la passant par-dessus les deux brins." },
+      { title: "Passer la ganse dans la boucle",
+        text: "Ramenez la ganse dans la boucle par l'arrière et faites-la ressortir par l'avant : c'est un demi-nœud fait avec le cordage doublé." },
+      { title: "Souquer",
+        text: "Rangez les deux brins côte à côte, puis tirez sur la boucle et sur les deux brins." }
+    ]
+  },
+  {
+    id: "capucin", name: "Nœud de capucin", family: "Nœuds d'arrêt",
+    legend: [{ color: "--rope-white", text: "Blanc : le dormant" }, { color: "--rope-courant", text: "Rosé : le courant" }],
+    usage: "Nœud d'arrêt plus gros que le nœud en huit, pour un filoir large, ou pour alourdir le bout d'un cordage à lancer.",
+    hold: "Se bloque très fort et se défait difficilement après une forte tension.",
+    level: "Facile",
+    target: [0, -0.4, 0], fit: [4.6, 2.7], home: [0.35, 1.45],
+    ropes: [{ look: "white", tip: "--tip-red", loose: CAPUCIN_LOOSE, tight: CAPUCIN_TIGHT, stops: [4, 17, 24, 32], cut: 5 }],
+    dur: [2.0, 1.8, 1.8, 1.6],
+    steps: [
+      { title: "Un premier tour autour du dormant",
+        text: "Ramenez le courant vers le haut et faites un tour autour du dormant." },
+      { title: "Un second tour, au-dessus du premier",
+        text: "Continuez par un second tour, juste au-dessus du premier, toujours dans le même sens." },
+      { title: "Redescendre à l'intérieur des tours",
+        text: "Glissez le courant à l'intérieur des deux tours, le long du dormant, et faites-le ressortir par le bas." },
+      { title: "Souquer",
+        text: "Tirez sur le courant et sur le dormant : les deux tours se serrent l'un contre l'autre." }
+    ]
+  },
+  {
+    id: "pecheur2", name: "Nœud de pêcheur double", family: "Nœuds d'ajut",
+    legend: [{ color: "--rope-white", text: "Blanc : premier cordage" }, { color: "--rope-red", text: "Rouge : second cordage" }],
+    usage: "Réunir deux cordages fins, lisses ou glissants, ou fermer un anneau de cordage, quand le nœud de pêcheur simple risque de glisser.",
+    hold: "L'un des ajuts les plus sûrs. Très difficile à défaire après une forte charge : à réserver aux assemblages qui restent en place.",
+    level: "Moyen",
+    target: [0, 0, 0], fit: [6.2, 2.8], home: [0.35, 1.45],
+    ropes: [
+      { look: "white", tip: "--tip-blue", loose: PECHEUR2_LOOSE, tight: PECHEUR2_TIGHT, stops: [4, 24, 32, 32, 32] },
+      { look: "red", tip: "--tip-blue", loose: halfTurn(PECHEUR2_LOOSE), tight: halfTurn(PECHEUR2_TIGHT), stops: [4, 4, 4, 24, 32] }
+    ],
+    dur: [3.0, 1.8, 3.0, 1.8, 1.8],
+    steps: [
+      { title: "Deux tours autour des deux cordages",
+        text: "Placez les deux cordages côte à côte. Avec le bout du premier, faites deux tours autour des deux cordages, en revenant vers son propre dormant." },
+      { title: "Repasser dans les deux tours",
+        text: "Glissez le bout à l'intérieur des deux tours, le long des cordages, et faites-le ressortir de l'autre côté." },
+      { title: "Deux tours avec l'autre bout",
+        text: "Faites de même avec le bout du second cordage : deux tours autour des deux cordages, en revenant vers son dormant." },
+      { title: "Repasser dans les deux tours",
+        text: "Glissez ce second bout à l'intérieur de ses deux tours." },
+      { title: "Souquer et rapprocher",
+        text: "Serrez chaque nœud, puis tirez sur les deux dormants : les nœuds glissent et se bloquent l'un contre l'autre." }
+    ]
+  },
+  {
+    id: "agui", name: "Nœud d'agui", family: "Nœuds d'ajut",
+    legend: [{ color: "--rope-white", text: "Blanc : premier cordage" }, { color: "--rope-red", text: "Rouge : second cordage" }],
+    usage: "Réunir deux gros cordages ou deux cordages très différents : remorque, rallonge d'amarre.",
+    hold: "Aussi sûr que le nœud de chaise et se défait toujours, même après une forte charge. Les deux boucles frottent l'une sur l'autre : à surveiller sur la durée.",
+    level: "Facile",
+    target: [0, -6.9, 0], fit: [14.8, 4.4], home: [0.32, 1.5], thumb: 0.6,
+    ropes: [
+      { look: "white", tip: "--tip-blue", loose: aguiEye(CHAISE_LOOSE), tight: aguiEye(CHAISE_TIGHT), stops: [5, 51, 51, 51] },
+      { look: "red", tip: "--tip-blue", loose: agui(CHAISE_LOOSE, -13.5), tight: agui(CHAISE_TIGHT, -14.28), stops: [5, 5, 31, 51] }
+    ],
+    dur: [4.2, 3.2, 3.4, 1.8],
+    steps: [
+      { title: "Un nœud de chaise sur le premier cordage",
+        text: "Faites un nœud de chaise au bout du premier cordage." },
+      { title: "Passer le second cordage dans la boucle",
+        text: "Sur le second cordage, formez le puits, puis passez le courant dans la boucle du premier nœud de chaise." },
+      { title: "Un nœud de chaise sur le second cordage",
+        text: "Terminez le second nœud de chaise : le courant sort du puits, fait le tour du dormant et rentre dans le puits." },
+      { title: "Souquer",
+        text: "Serrez chaque nœud de chaise, puis tirez sur les deux dormants : les deux boucles se prennent l'une dans l'autre." }
+    ]
+  },
+  {
+    id: "vache", name: "Nœud de vache", family: "Nœuds d'ajut",
+    legend: [{ color: "--rope-white", text: "Blanc : premier cordage" }, { color: "--rope-red", text: "Rouge : second cordage" }],
+    usage: "À connaître pour l'éviter : c'est un nœud plat raté, dont le second demi-nœud est fait dans le même sens que le premier.",
+    hold: "Glisse sous la charge, puis se coince. Ne l'utilisez pas : refaites un nœud plat.",
+    level: "Facile",
+    target: [0, 0, 0], fit: [5.5, 2.7], home: [0.28, 1.5],
+    ropes: [
+      { look: "white", tip: "--tip-blue", loose: upright(VACHE_LOOSE), tight: upright(VACHE_TIGHT), stops: [2, 13, 21] },
+      { look: "red", tip: "--tip-blue", loose: upright(mirror(VACHE_LOOSE)), tight: upright(mirror(VACHE_TIGHT)), stops: [2, 13, 21] }
+    ],
+    dur: [1.9, 2.1, 1.7],
+    steps: [
+      { title: "Premier demi-nœud",
+        text: "Croisez les deux bouts et enroulez-les une fois l'un autour de l'autre, comme pour un nœud plat." },
+      { title: "Second demi-nœud, dans le même sens",
+        text: "C'est l'erreur : les bouts sont croisés à nouveau dans le même sens que la première fois, au lieu du sens opposé." },
+      { title: "Le reconnaître",
+        text: "Une fois serré, chaque bout ressort de l'autre côté de la boucle par rapport à son dormant : l'un passe dessus, l'autre dessous. Sur un nœud plat, ils ressortent du même côté." }
+    ]
+  },
+  {
+    id: "alouette", name: "Tête d'alouette", family: "Nœuds d'amarrage",
+    legend: [{ color: "--rope-white", text: "Blanc : le dormant" }, { color: "--rope-courant", text: "Rosé : le courant" }],
+    usage: "Fixer un cordage, une estrope ou une garcette sur un anneau, un espar ou une filière, quand les deux brins travaillent ensemble.",
+    hold: "Ne tient que si les deux brins sont chargés ensemble : si un seul brin travaille, le nœud glisse.",
+    level: "Facile",
+    target: [0, -0.5, 0.3], fit: [5.3, 3.9], home: [0.42, 1.2],
+    supports: [{ a: [-3.6, 0, 0], b: [3.6, 0, 0], r: 1 }],
+    ropes: [{ look: "white", tip: "--tip-red", loose: alouette(0.45, 1.15, 1.9), tight: alouette(0.27, 0.95, 1.83), stops: [3, 10, 17, 27], cut: 4 }],
+    dur: [1.9, 1.6, 2.2, 1.5],
+    steps: [
+      { title: "Un tour par-dessus le support",
+        text: "Passez le courant par-dessus l'espar et ramenez-le par-dessous." },
+      { title: "Croiser devant le dormant",
+        text: "Faites passer le courant devant le dormant, à l'horizontale." },
+      { title: "Un tour dans l'autre sens",
+        text: "Repartez sous l'espar, faites le tour en sens inverse et redescendez le courant sous la barre, à côté du dormant." },
+      { title: "Souquer",
+        text: "Tirez sur les deux brins ensemble : la barre les plaque contre l'espar. Avec une estrope ou un cordage en double, passez simplement la ganse autour du support, puis les deux brins dans la ganse." }
+    ]
   }
 ];
 
@@ -1655,8 +1908,36 @@ function prepare(k) {
     if (rope.curve || rope.frames) return;
     rope.curve = ropeAt(rope, 0);
     rope.arcs = rope.stops.map(function (ci) { return rope.curve.ctrlS[ci]; });
-    rope.arcs[rope.arcs.length - 1] = rope.curve.len;
+    if (!rope.fold) rope.arcs[rope.arcs.length - 1] = rope.curve.len;
   });
+}
+// A rope tied folded in two is laid from both ends at once: the standing strand down to `arc`, the strand
+// that comes back from the matching place to the free end, and between them the bight that leads the way.
+var foldPts = renderer ? new Float32Array(MAXR * 3) : null;
+function folded(rope, arc) {
+  var c = rope.curve, S = c.ctrlS, N = S.length - 1, P = c.pts, k = 0, o = 0, i, j;
+  while (k < N - 1 && S[k + 1] < arc) k++;
+  var back = S[N - k] + (S[N - k - 1] - S[N - k]) * (arc - S[k]) / ((S[k + 1] - S[k]) || 1);
+  var i1 = Math.max(1, Math.min(c.n - 2, Math.round(arc / DS))), i2 = Math.max(i1, Math.min(c.n - 2, Math.round(back / DS)));
+  var a = i1 * 3, b = i2 * 3;
+  var cx = (P[b] - P[a]) / 2, cy = (P[b + 1] - P[a + 1]) / 2, cz = (P[b + 2] - P[a + 2]) / 2;
+  var rad = Math.sqrt(cx * cx + cy * cy + cz * cz);
+  // the bight points the way both strands are heading
+  var fx = P[a] - P[a - 3] + P[b] - P[b + 3], fy = P[a + 1] - P[a - 2] + P[b + 1] - P[b + 4], fz = P[a + 2] - P[a - 1] + P[b + 2] - P[b + 5];
+  var d = rad ? (fx * cx + fy * cy + fz * cz) / (rad * rad) : 0;
+  fx -= d * cx; fy -= d * cy; fz -= d * cz;
+  var fl = Math.sqrt(fx * fx + fy * fy + fz * fz), m = Math.round(Math.PI * rad / DS) - 1;
+  // nothing left to bridge: the rope is all there
+  if (fl < 1e-6 || m < 1 || i2 - i1 <= m + 1 || i1 + 1 + m + c.n - i2 > MAXR) return c;
+  for (i = 0; i <= a + 2; i++) foldPts[o++] = P[i];
+  for (j = 1; j <= m; j++) {
+    var co = Math.cos(Math.PI * j / (m + 1)), si = Math.sin(Math.PI * j / (m + 1)) * rad / fl;
+    foldPts[o++] = P[a] + cx - cx * co + fx * si;
+    foldPts[o++] = P[a + 1] + cy - cy * co + fy * si;
+    foldPts[o++] = P[a + 2] + cz - cz * co + fz * si;
+  }
+  for (i = b; i < c.n * 3; i++) foldPts[o++] = P[i];
+  return { pts: foldPts, n: o / 3, cut: i1 + Math.ceil((m + 1) / 2) };
 }
 function show(p) {
   if (!renderer) return;
@@ -1670,13 +1951,14 @@ function show(p) {
     } else if (p <= last) {
       var k = Math.min(last - 1, Math.floor(p)), f = p - k;
       var arc = rope.arcs[k] + (rope.arcs[k + 1] - rope.arcs[k]) * ease(f);
-      n = Math.max(3, Math.min(curve.n, Math.round(arc / DS) + 1));
+      if (rope.fold) { curve = folded(rope, arc); n = curve.n; }
+      else n = Math.max(3, Math.min(curve.n, Math.round(arc / DS) + 1));
     } else {
       curve = ropeAt(rope, ease(p - last));
       n = Math.min(curve.n, MAXR);
     }
     // rope.cut: the control point where the working part begins; it is drawn in its own colour.
-    var cut = rope.cut === undefined ? n : Math.round(curve.ctrlS[rope.cut] / DS);
+    var cut = curve.cut !== undefined ? curve.cut : rope.cut === undefined ? n : Math.round(curve.ctrlS[rope.cut] / DS);
     if (cut > 0 && cut < n - 1) {
       var carry = bodies[i].build(curve.pts, 0, cut, R, false, null, true);
       tails[i].build(curve.pts, cut, n - 1, R, false, carry, false);
@@ -2137,12 +2419,14 @@ function buildHome() {
 var NEEDS = [
   { id: "amarrer", label: "Amarrer le bateau", knots: ["taquet", "tourmort", "cabestan"],
     tip: "Sur un taquet, le nœud de taquet. Sur un anneau ou une bitte, le tour mort et deux demi-clefs." },
-  { id: "boucle", label: "Faire une boucle", knots: ["chaise", "laguis"],
-    tip: "Le nœud de chaise donne une boucle fixe qui ne glisse pas. Le laguis, lui, se resserre sur ce qu'il entoure." },
-  { id: "reunir", label: "Réunir deux cordages", knots: ["ecoute", "plat", "ecoute2", "pecheur", "carrick"],
+  { id: "boucle", label: "Faire une boucle", knots: ["chaise", "huit2", "laguis", "pleinpoing"],
+    tip: "Le nœud de chaise donne une boucle fixe qui se défait toujours. Le huit double est encore plus sûr, mais plus dur à défaire. Le laguis, lui, se resserre sur ce qu'il entoure." },
+  { id: "reunir", label: "Réunir deux cordages", knots: ["ecoute", "plat", "ecoute2", "pecheur", "pecheur2", "agui", "carrick"],
     tip: "Le nœud d'écoute convient presque toujours. Le nœud plat ne vaut que pour deux cordages identiques et peu chargés." },
-  { id: "poulie", label: "Bloquer un cordage dans une poulie", knots: ["huit", "demi"],
-    tip: "Le nœud en huit : il se défait facilement, contrairement au demi-nœud." },
+  { id: "poulie", label: "Bloquer un cordage dans une poulie", knots: ["huit", "capucin", "demi"],
+    tip: "Le nœud en huit : il se défait facilement, contrairement au demi-nœud. Le capucin, plus gros, convient à un filoir large." },
+  { id: "anneau", label: "Fixer sur un anneau ou une filière", knots: ["tourmort", "alouette", "cabestan"],
+    tip: "Le tour mort et deux demi-clefs pour une charge qui dure. La tête d'alouette quand les deux brins travaillent ensemble, le cabestan pour une fixation rapide." },
   { id: "pare-battage", label: "Fixer un pare-battage", knots: ["cabestan", "tourmort"],
     tip: "Le cabestan se règle vite en hauteur. Ajoutez une demi-clef s'il doit rester longtemps." },
   { id: "ancre", label: "Frapper une ancre", knots: ["ancre"],
@@ -2296,7 +2580,8 @@ window.__knot = {
   at: function (p) { playing = false; prog = goal = p; uiStep = stepOf(p); show(p); paint(); paintPlay(); },
   knot: function (id) { openKnot(byId(id)); go(1, 1); },
   home: function () { showHome(); },
-  flat: function (on) { setFlat(on, true); }
+  flat: function (on) { setFlat(on, true); },
+  shot: function () { place(); renderer.render(scene, camera); return canvas.toDataURL("image/jpeg", 0.85); }
 };
 
 var hot = window.claude && window.claude.hot;
