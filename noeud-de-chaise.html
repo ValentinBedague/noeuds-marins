@@ -351,6 +351,7 @@ h2 {
 
 /* ---------- library ---------- */
 .home {
+  position: relative;
   max-width: 1120px;
   margin-inline: auto;
   --gutter: clamp(16px, 4vw, 40px);
@@ -415,6 +416,67 @@ h2 {
 .need-view h2 { font-size: clamp(28px, 5vw, 38px); }
 .back-lib { align-self: flex-start; margin-bottom: 6px; }
 .need-tip { max-width: 62ch; font-size: 14.5px; }
+
+/* ---------- profile button and its menu ---------- */
+.profile {
+  position: absolute;
+  top: 24px;
+  right: var(--gutter);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  padding: 0;
+}
+.profile svg { width: 20px; height: 20px; }
+.profile[aria-expanded="true"] { border-color: var(--muted); }
+.menu {
+  position: absolute;
+  top: 70px;
+  right: var(--gutter);
+  z-index: 4;
+  width: min(320px, calc(100vw - 2 * var(--gutter)));
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(7, 15, 23, 0.22);
+  transform-origin: top right;
+}
+.menu[hidden] { display: none; }
+.menu-title {
+  padding: 10px 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 6px 8px; }
+.seg button { padding: 9px 6px; border-radius: 10px; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 10px;
+  margin: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-radius: 10px;
+}
+button.menu-item:hover { background: var(--bg); }
+.menu-item svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+.menu-item small { display: block; font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.menu-foot { padding: 8px 10px 6px; margin-top: 4px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
 
 .families { display: flex; flex-direction: column; gap: 38px; }
 .family { display: flex; flex-direction: column; gap: 4px; }
@@ -537,6 +599,7 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
 
 /* report dialog */
 .report[open] { animation: pop 0.22s var(--ease) both; }
+.menu { animation: pop 0.18s var(--ease) both; }
 .report[open]::backdrop { animation: fade 0.22s ease both; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -575,7 +638,21 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
 }
 </style>
 
+<script>try { var nmTheme = localStorage.getItem("nm-theme"); if (nmTheme === "light" || nmTheme === "dark") document.documentElement.setAttribute("data-theme", nmTheme); } catch (e) {}</script>
 <main class="home" id="home">
+  <button class="profile" id="profile" type="button" aria-label="Réglages et informations" aria-haspopup="true" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-3.6 3.6-6 8-6s8 2.4 8 6"></path></svg></button>
+  <div class="menu" id="menu" hidden>
+    <p class="menu-title">Apparence</p>
+    <div class="seg" id="themeSeg" role="group" aria-label="Apparence">
+      <button type="button" data-theme="auto" aria-pressed="true">Auto</button>
+      <button type="button" data-theme="light" aria-pressed="false">Clair</button>
+      <button type="button" data-theme="dark" aria-pressed="false">Sombre</button>
+    </div>
+    <button class="menu-item" id="installBtn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M4 19h16"></path></svg><span>Installer l'application<small>Sur l'écran d'accueil, utilisable sans réseau</small></span></button>
+    <p class="menu-item" id="installHint" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M4 19h16"></path></svg><span>Installer l'application<small>Dans Safari : bouton Partager, puis « Sur l'écran d'accueil ».</small></span></p>
+    <button class="menu-item" id="reportHome" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.4a2.5 2.5 0 1 1 3.7 2.2c-.8.5-1.3 1-1.3 1.9"></path><path d="M12 17h.01"></path></svg><span>Signaler un problème<small>Un nœud faux, un affichage cassé, une idée</small></span></button>
+    <p class="menu-foot" id="menuFoot"></p>
+  </div>
   <header class="masthead">
     <p class="kicker">Matelotage</p>
     <h1 class="brand">Nœuds marins</h1>
@@ -650,21 +727,22 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
 
   </aside>
 
-  <dialog class="report" id="reportDlg" aria-labelledby="reportTitle">
-    <form id="reportForm">
-      <h2 id="reportTitle">Signaler un problème</h2>
-      <p class="report-where" id="reportWhere"></p>
-      <label for="reportMsg">Votre message</label>
-      <textarea id="reportMsg" rows="5" placeholder="Un nœud faux, une étape peu claire, un affichage cassé…"></textarea>
-      <p class="report-note" id="reportNote"></p>
-      <p class="report-status" id="reportStatus" role="status" hidden></p>
-      <div class="report-actions">
-        <button type="button" id="reportCancel">Annuler</button>
-        <button type="submit" class="primary" id="reportSend">Envoyer</button>
-      </div>
-    </form>
-  </dialog>
 </div>
+
+<dialog class="report" id="reportDlg" aria-labelledby="reportTitle">
+  <form id="reportForm">
+    <h2 id="reportTitle">Signaler un problème</h2>
+    <p class="report-where" id="reportWhere"></p>
+    <label for="reportMsg">Votre message</label>
+    <textarea id="reportMsg" rows="5" placeholder="Un nœud faux, une étape peu claire, un affichage cassé…"></textarea>
+    <p class="report-note" id="reportNote"></p>
+    <p class="report-status" id="reportStatus" role="status" hidden></p>
+    <div class="report-actions">
+      <button type="button" id="reportCancel">Annuler</button>
+      <button type="submit" class="primary" id="reportSend">Envoyer</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -2240,6 +2318,7 @@ document.addEventListener("fullscreenchange", function () { if (!document.fullsc
 var REPORT = null;
 var reportDlg = $("reportDlg"), reportMsg = $("reportMsg"), reportStatus = $("reportStatus"), reportSend = $("reportSend"), reportShown = false;
 function reportWhere() {
+  if (view !== "knot") return { knot: "Bibliothèque", step: need ? "Cas : " + need.label : "Accueil" };
   return { knot: knot.name, step: "Étape " + uiStep + " sur " + knot.steps.length + " : " + knot.steps[uiStep - 1].title };
 }
 function reportSay(text) { reportStatus.textContent = text; reportStatus.hidden = !text; }
@@ -2300,6 +2379,44 @@ function reportDeliver(w, message, device) {
   }, byHand);
 }
 $("report").addEventListener("click", reportOpen);
+$("reportHome").addEventListener("click", function () { menuShow(false); reportOpen(); });
+
+/* ---------- profile menu: appearance, install, report ---------- */
+var menuEl = $("menu"), profileBtn = $("profile");
+function menuShow(on) {
+  menuEl.hidden = !on;
+  profileBtn.setAttribute("aria-expanded", on ? "true" : "false");
+}
+profileBtn.addEventListener("click", function () { menuShow(menuEl.hidden); });
+document.addEventListener("pointerdown", function (ev) {
+  if (!menuEl.hidden && !menuEl.contains(ev.target) && !profileBtn.contains(ev.target)) menuShow(false);
+});
+window.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !menuEl.hidden) { menuShow(false); profileBtn.focus(); } });
+// Appearance: follow the device, or always light or dark. Remembered on this device.
+function setTheme(t, save) {
+  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  else { t = "auto"; document.documentElement.removeAttribute("data-theme"); }
+  $("themeSeg").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-theme") === t ? "true" : "false"); });
+  if (save) try { if (t === "auto") localStorage.removeItem("nm-theme"); else localStorage.setItem("nm-theme", t); } catch (e) {}
+}
+$("themeSeg").addEventListener("click", function (ev) {
+  var b = ev.target.closest("button");
+  if (b) setTheme(b.getAttribute("data-theme"), true);
+});
+try { setTheme(localStorage.getItem("nm-theme"), false); } catch (e) { setTheme("auto", false); }
+// Install: Android and desktop browsers offer a prompt; on iPhone and iPad it is done from Safari's share sheet.
+var installEvt = null;
+window.addEventListener("beforeinstallprompt", function (ev) { ev.preventDefault(); installEvt = ev; $("installBtn").hidden = false; });
+window.addEventListener("appinstalled", function () { installEvt = null; $("installBtn").hidden = true; $("installHint").hidden = true; });
+$("installBtn").addEventListener("click", function () {
+  var e = installEvt; installEvt = null; $("installBtn").hidden = true; menuShow(false);
+  if (e) e.prompt();
+});
+(function () {
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios && !standalone && location.protocol === "https:" && window === window.top) $("installHint").hidden = false;
+})();
 $("reportCancel").addEventListener("click", reportClose);
 $("reportForm").addEventListener("submit", function (ev) {
   ev.preventDefault();
@@ -2413,6 +2530,7 @@ function buildHome() {
     sec.cards.push(card); cards.push(card);
   });
   $("tally").textContent = KNOTS.length + " nœuds en 3D, classés en " + sections.length + " familles. Chaque nœud se suit étape par étape.";
+  $("menuFoot").textContent = "Nœuds marins · version d'essai · " + KNOTS.length + " nœuds";
   if (renderer) thumbQueue = cards.slice();
 }
 // What people want to do, and the knots that answer it, best one first.
@@ -2542,6 +2660,7 @@ function openKnot(k, fromRoute) {
   if (view === "knot" && knot === k) return;
   if (view === "home") homeScroll = window.pageYOffset || 0;
   view = "knot";
+  menuShow(false);
   homeEl.hidden = true; viewerEl.hidden = false;
   window.scrollTo(0, 0);
   if (renderer) resize();
