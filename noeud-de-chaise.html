@@ -294,6 +294,7 @@ h2 {
   padding: 0;
 }
 .tool svg { width: 18px; height: 18px; }
+.stage .tempo { width: auto; min-width: 46px; padding: 0 9px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .stage-step { display: none; min-width: 0; font-size: 13px; color: var(--stage-ink); }
 .stage-step b { font-weight: 600; }
 
@@ -405,6 +406,25 @@ h2 {
 }
 .search-field input::placeholder { color: var(--muted); }
 .search-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- resume where one left off ---------- */
+.resume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+  padding: 10px 14px 10px 12px;
+  color: inherit;
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.resume:hover { border-color: var(--muted); }
+.resume svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
+.resume b { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.resume span { display: block; font-size: 14px; }
+.home.in-need .resume { display: none; }
 
 .needs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .needs h2 { font-size: 22px; }
@@ -552,11 +572,12 @@ button.menu-item:hover { background: var(--bg); }
 @keyframes glow { 0% { opacity: 0; } 25% { opacity: 0.2; } 100% { opacity: 0; } }
 
 /* press and hover */
-button, .back, .card-pic {
+button, .back, .card-pic, .resume {
   transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease),
     opacity 0.16s var(--ease), transform 0.16s var(--ease);
 }
 button:active:not(:disabled), .back:active { transform: scale(0.94); }
+.resume:active { transform: scale(0.98); }
 .stage .step-arrow:active:not(:disabled) { transform: translateY(-50%) scale(0.86); }
 .step-arrow svg, .tool svg { transition: transform 0.3s var(--ease); }
 .step-arrow.next:active svg { transform: translateX(4px); }
@@ -661,6 +682,7 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
   <button class="profile" id="profile" type="button" aria-label="Réglages et informations" aria-haspopup="true" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-3.6 3.6-6 8-6s8 2.4 8 6"></path></svg></button>
   <div class="menu" id="menu" hidden>
     <p class="menu-title">Mes nœuds</p>
+    <button class="menu-item" id="menuResume" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>Reprendre<small id="menuResumeNote"></small></span></button>
     <button class="menu-item" id="menuFav" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.5 2.3c0 5.4-7.5 10-7.5 10z"></path></svg><span>Mes favoris<small id="menuFavNote"></small></span></button>
     <button class="menu-item" id="menuDone" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>Progression<small id="menuDoneNote"></small></span></button>
     <div class="menu-bar" aria-hidden="true"><i id="menuBar"></i></div>
@@ -674,6 +696,12 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
     <div class="seg two" id="handSeg" role="group" aria-label="Main">
       <button type="button" data-hand="droite" aria-pressed="true">Droite</button>
       <button type="button" data-hand="gauche" aria-pressed="false">Gauche</button>
+    </div>
+    <p class="menu-title">Vitesse des animations</p>
+    <div class="seg" id="tempoSeg" role="group" aria-label="Vitesse des animations">
+      <button type="button" data-tempo="0.5" aria-pressed="false">Lente</button>
+      <button type="button" data-tempo="1" aria-pressed="true">Normale</button>
+      <button type="button" data-tempo="1.5" aria-pressed="false">Rapide</button>
     </div>
     <button class="menu-item" id="installBtn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M4 19h16"></path></svg><span>Installer l'application<small>Sur l'écran d'accueil, utilisable sans réseau</small></span></button>
     <p class="menu-item" id="installHint" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M4 19h16"></path></svg><span>Installer l'application<small>Dans Safari : bouton Partager, puis « Sur l'écran d'accueil ».</small></span></p>
@@ -693,6 +721,7 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
       <input id="q" type="search" placeholder="Chercher un nœud ou un usage" autocomplete="off">
     </div>
   </div>
+  <a class="resume" id="resume" href="#" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span><b>Reprendre</b><span id="resumeText"></span></span></a>
   <section class="needs" aria-labelledby="needsTitle">
     <h2 id="needsTitle">Que voulez-vous faire ?</h2>
     <div class="need-row" id="needs"></div>
@@ -723,6 +752,7 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
         <button class="tool" id="play" type="button" aria-label="Lire tout le nœud" title="Lire tout le nœud"><span id="playOn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="currentColor"></path></svg></span><span id="playOff" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5v14M16 5v14"></path></svg></span></button>
         <label class="vh" for="scrub">Avancement du nœud</label>
         <input id="scrub" type="range" min="0" max="5" step="0.001" value="1">
+        <button class="tool tempo" id="tempo" type="button" aria-label="Vitesse des animations" title="Vitesse des animations">×1</button>
       </div>
       <p class="stage-step" id="stageStep"></p>
       <p class="hint">Glissez pour tourner<span class="long"> · pincez ou utilisez la molette pour zoomer</span></p>
@@ -2182,6 +2212,7 @@ if (renderer) {
 // prog: where the animation is, from 0 to the number of steps. goal: where it is heading.
 // uiStep: the step the text describes. playing: the whole knot is being played through.
 var prog = 1, goal = 1, uiStep = 1, playing = false, speed = 1, lastT = 0;
+var tempo = 1;   // animation speed chosen by the user
 var scrub = $("scrub"), playBtn = $("play");
 function stepOf(p) { return Math.max(1, Math.min(knot.steps.length, Math.ceil(p - 1e-6))); }
 function paintPlay() {
@@ -2198,6 +2229,7 @@ function paint() {
   $("stepTotal").textContent = String(total);
   $("stepTitle").textContent = handed(s.title);
   $("stepText").textContent = handed(s.text);
+  saveLast();
   Array.prototype.forEach.call(stepsNav.children, function (b, i) {
     if (i + 1 === uiStep) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
     b.classList.toggle("done", i + 1 < uiStep);
@@ -2349,6 +2381,51 @@ function setMirror(on, save) {
   if (save) try { if (mirror) localStorage.setItem("nm-main", "gauche"); else localStorage.removeItem("nm-main"); } catch (e) {}
 }
 $("mirror").addEventListener("click", function () { setMirror(!mirror, true); });
+
+// Animation speed, remembered on this device.
+var TEMPOS = [0.5, 1, 1.5];
+function setTempo(v, save) {
+  tempo = TEMPOS.indexOf(v) >= 0 ? v : 1;
+  var label = "×" + String(tempo).replace(".", ",");
+  $("tempo").textContent = label;
+  $("tempo").title = "Vitesse des animations : " + label;
+  $("tempoSeg").querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", Number(b.getAttribute("data-tempo")) === tempo ? "true" : "false"); });
+  if (save) try { if (tempo === 1) localStorage.removeItem("nm-vitesse"); else localStorage.setItem("nm-vitesse", String(tempo)); } catch (e) {}
+}
+$("tempo").addEventListener("click", function () { setTempo(TEMPOS[(TEMPOS.indexOf(tempo) + 1) % TEMPOS.length], true); });
+$("tempoSeg").addEventListener("click", function (ev) {
+  var b = ev.target.closest("button");
+  if (b) setTempo(Number(b.getAttribute("data-tempo")), true);
+});
+try { setTempo(Number(localStorage.getItem("nm-vitesse")) || 1, false); } catch (e) {}
+
+/* ---------- resume where one left off ---------- */
+var last = null;
+try { last = JSON.parse(localStorage.getItem("nm-dernier") || "null"); } catch (e) { last = null; }
+function saveLast() {
+  if (view !== "knot") return;
+  last = { id: knot.id, step: uiStep };
+  try { localStorage.setItem("nm-dernier", JSON.stringify(last)); } catch (e) {}
+  paintLast();
+}
+function paintLast() {
+  var k = last && find(last.id);
+  $("resume").hidden = !k; $("menuResume").hidden = !k;
+  if (!k) return;
+  var step = Math.max(1, Math.min(k.steps.length, last.step | 0)), text = k.name + " · étape " + step + " sur " + k.steps.length;
+  $("resumeText").textContent = text; $("menuResumeNote").textContent = text;
+  $("resume").href = "#" + k.id;
+}
+function resume() {
+  var k = last && find(last.id);
+  if (!k) return;
+  var step = Math.max(1, Math.min(k.steps.length, last.step | 0));
+  openKnot(k);
+  go(step, step - 1);
+}
+$("resume").addEventListener("click", function (ev) { ev.preventDefault(); resume(); });
+$("menuResume").addEventListener("click", function () { menuShow(false); resume(); });
+paintLast();
 $("handSeg").addEventListener("click", function (ev) {
   var b = ev.target.closest("button");
   if (b) setMirror(b.getAttribute("data-hand") === "gauche", true);
@@ -2506,7 +2583,7 @@ function frame(now) {
   }
   if (prog !== goal) {
     var seg = prog < goal ? Math.min(knot.dur.length - 1, Math.floor(prog)) : Math.max(0, Math.ceil(prog) - 1);
-    var dp = dt * speed / knot.dur[seg];
+    var dp = dt * speed * tempo / knot.dur[seg];
     prog = prog < goal ? Math.min(goal, prog + dp) : Math.max(goal, prog - dp);
     show(prog);
     if (prog === goal && goal >= knot.steps.length - 1e-6) finished();
