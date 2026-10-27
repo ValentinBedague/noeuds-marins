@@ -469,6 +469,9 @@ h2 {
 .quiz-card, .quiz-end { display: flex; flex-direction: column; gap: 14px; }
 .night { display: block; width: 100%; height: auto; border-radius: 16px; background: #010306; }
 .night .blink { animation: blink 0.5s steps(1, end) infinite; }
+.night .hull-rim { fill: #2c4656; stroke: #2c4656; stroke-width: 1.2; stroke-linejoin: round; }
+.night .hull { fill: #13202a; }
+.night .hull .sail { fill: #1a2c38; }
 @keyframes blink { 50% { opacity: 0; } }
 .quiz-q { font-size: 22px; }
 .quiz-answers { display: flex; flex-direction: column; gap: 8px; }
@@ -538,6 +541,17 @@ h2 {
 .flip-why { font-size: 15px; }
 .flip-ref { font-size: 12.5px; color: var(--stage-muted); }
 .revise.swap .flip { animation: rise 0.3s var(--ease) both; }
+.rev-night.turning .night { animation: fade 0.3s var(--ease); }
+.spin { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.spin-btn { flex: none; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; color: var(--stage-ink); background: var(--stage-btn); border-color: var(--stage-line); }
+.spin-btn:hover:not(:disabled) { border-color: var(--stage-muted); }
+.spin-btn svg { width: 18px; height: 18px; }
+.spin-now { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.spin-boat { flex: none; width: 24px; height: 30px; }
+.spin-boat path { fill: var(--stage-accent); transform-box: fill-box; transform-origin: center; transition: transform 0.4s var(--ease); }
+.spin-boat path.instant { transition: none; }
+.spin-boat circle { fill: var(--stage-muted); }
+@media (prefers-reduced-motion: reduce) { .spin-boat path { transition: none; } }
 
 .needs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .needs h2 { font-size: 22px; }
@@ -955,7 +969,7 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
   <section class="revise" id="revise" hidden>
     <div class="flip" id="flip">
       <div class="flip-inner">
-        <div class="face front"><div id="revNight"></div><p class="flip-q" id="revQ"></p><p class="flip-hint">Touchez la carte pour la retourner</p></div>
+        <div class="face front"><div class="rev-night" id="revNight"></div><div class="spin" id="revSpin"><button class="spin-btn" id="revLeft" type="button" aria-label="Tourner le navire d'un quart de tour, sens antihoraire"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg></button><p class="spin-now"><svg class="spin-boat" viewBox="-11 -11 22 27" aria-hidden="true"><path id="revBoat" d="M0 -8C3.6 -4 3.6 3.5 2.6 8L-2.6 8C-3.6 3.5 -3.6 -4 0 -8Z"></path><circle cx="0" cy="13.5" r="1.7"></circle></svg><span id="revView" aria-live="polite"></span></p><button class="spin-btn" id="revRight" type="button" aria-label="Tourner le navire d'un quart de tour, sens horaire"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg></button></div><p class="flip-q" id="revQ"></p><p class="flip-hint">Touchez la carte pour la retourner</p></div>
         <div class="face back" aria-hidden="true"><p class="flip-kicker">Réponse</p><p class="flip-a" id="revA"></p><p class="flip-why" id="revWhy"></p><p class="flip-ref"><span id="revRef"></span> · <button class="linkish" id="revReport" type="button">Signaler une erreur</button></p></div>
       </div>
     </div>
@@ -3060,103 +3074,208 @@ window.addEventListener("hashchange", route);
 $("back").addEventListener("click", function (ev) { ev.preventDefault(); showHome(); });
 
 /* ---------- quiz: navigation lights (RIPAM, rules 20 to 31) ---------- */
-// A night view 196 x 134 (viewBox from 62, 48), horizon at HZ. A light: colour (w, r, g, y), position, flashing.
+// A night view 196 x 134 (viewBox from 62, 48), horizon at HZ. A vessel is seen from one of four sides: "face" (it
+// comes towards you), "tribord" (its starboard side: it goes to your right), "arriere" (from astern), "babord" (it goes
+// to your left), in the order it turns.
 var HZ = 170, CORE = {"w":"#fffaf0","r":"#ff5247","g":"#5dffb0","y":"#ffd24a"};
-function L(c, x, y, f) { return { c: c, x: x, y: y, f: !!f }; }
-// What one sees of a vessel: "face" (it comes towards you), "tribord" (its starboard side: it goes to your
-// right), "babord" (it goes to your left), "arriere" (from astern).
-function sens(v) { return v === "tribord" ? 1 : v === "babord" ? -1 : 0; }
-function cotes(v) {
-  if (v === "face") return [L("g", 150, 140), L("r", 170, 140)];   // its starboard (green) is on your left
-  if (v === "tribord") return [L("g", 162, 140)];
-  if (v === "babord") return [L("r", 158, 140)];
-  return [];
-}
-// Masthead lights: two from 50 m, the forward one lower.
-function mats(v, n) {
-  var s = sens(v);
-  return n === 2 ? [L("w", 160 + 52 * s, 112), L("w", 160 - 34 * s, 86)] : [L("w", 160 + 26 * s, 104)];
-}
-function moteur(v, n) { return v === "arriere" ? [L("w", 160, 144)] : mats(v, n).concat(cotes(v)); }
-// All-round lights in a vertical line.
-function pile(cs, x, top, gap) { return cs.map(function (c, i) { return L(c, x, top + i * (gap || 15)); }); }
-var MOUILLAGE = [L("w", 225, 100), L("w", 95, 128)];   // forward light higher than the aft one
+var VUES = ["face", "tribord", "arriere", "babord"];
+// Where a point of the vessel falls across the picture: f forward of amidships, s to starboard.
+function across(view, f, s) { return view === "tribord" ? 160 + f : view === "babord" ? 160 - f : view === "face" ? 160 - s : 160 + s; }
 
-// a[0] is the right answer.
+// The dark shape of a vessel, in picture units, z above the water. Each part has its outline seen from the side
+// (pairs f, z) and seen end on (pairs s, z).
+function coque(l, b, d, t) {   // the hull: half its length, half its beam, its freeboard, how much the bow rises
+  return { side: [[-l, d], [-l + 2, -2], [l - 9, -2], [l, d + t], [l * 0.4, d + t * 0.3], [0, d]],
+    end: [[-b * 0.8, -2], [b * 0.8, -2], [b, d], [b * 0.9, d + t], [-b * 0.9, d + t], [-b, d]] };
+}
+function bloc(f0, f1, s0, s1, z0, z1, r) {   // a deckhouse, its front raked by r
+  return { side: [[f0, z0], [f1 - (r || 0), z0], [f1, z1], [f0, z1]], end: [[s0, z0], [s1, z0], [s1, z1], [s0, z1]] };
+}
+function mat(f, z0, z1, s) {
+  s = s || 0;
+  return { side: [[f - 0.7, z0], [f + 0.7, z0], [f + 0.5, z1], [f - 0.5, z1]], end: [[s - 0.7, z0], [s + 0.7, z0], [s + 0.5, z1], [s - 0.5, z1]] };
+}
+function voile(pts) {   // a sail, in the plane of the keel: end on, a thin sliver
+  var zs = pts.map(function (p) { return p[1]; }), lo = Math.min.apply(null, zs), hi = Math.max.apply(null, zs);
+  return { side: pts, end: [[-1.2, lo], [1.2, lo], [0.3, hi], [-0.3, hi]], voile: true };
+}
+function filin(a, b) {   // a line seen from the side only, such as a towline
+  return { side: [[a[0], a[1] + 0.5], [b[0], b[1] + 0.5], [b[0], b[1] - 0.5], [a[0], a[1] - 0.5]] };
+}
+// Kinds of vessel; h: the top of the mast that carries the lights.
+function petit(h) { return [coque(46, 10, 9, 4), bloc(-36, -20, -7, 7, 9, 16), bloc(-20, 6, -9, 9, 9, 30, 3), mat(20, 9, h)]; }
+function grand(h) {
+  return [coque(84, 14, 12, 5), bloc(-42, 50, -12, 12, 12, 19), bloc(-78, -44, -13, 13, 12, 40, 2), bloc(-76, -66, -4, 4, 40, 52),
+    mat(-50, 40, h), mat(56, 12, 62), mat(76, 15, 46), mat(-81, 12, 28)];
+}
+function voilier() {
+  return [coque(34, 8, 5, 2), bloc(-14, 10, -5, 5, 5, 9, 3), mat(4, 5, 101),
+    voile([[4, 13], [4, 97], [-11, 56], [-25, 13]]), voile([[30, 7], [6, 88], [-6, 10]])];
+}
+function peche(h, portique) {
+  var p = [coque(40, 10, 8, 6), bloc(-8, 6, -8, 8, 8, 18), bloc(6, 24, -8.5, 8.5, 8, 28, 3), mat(14, 28, h)];
+  return portique ? p.concat(mat(-34, 8, 36, -8), mat(-34, 8, 36, 8), bloc(-35, -33, -8, 8, 33, 36)) : p;
+}
+function pilote(h) { return [coque(32, 9, 8, 5), bloc(-8, 14, -7.5, 7.5, 8, 24, 4), mat(4, 24, h)]; }
+function remorqueur(h) {
+  return [coque(34, 11, 9, 7), bloc(-6, 22, -9, 9, 9, 19), bloc(4, 18, -8, 8, 19, 30, 2), mat(12, 30, h), mat(-31, 9, 31), filin([-24, 12], [-66, -1])];
+}
+function aeroglisseur() {
+  return [{ side: [[-34, -2], [34, -2], [37, 5], [33, 12], [-33, 12], [-36, 5]], end: [[-15, -2], [15, -2], [16.5, 5], [14, 12], [-14, 12], [-16.5, 5]] },
+    bloc(-16, 26, -11, 11, 12, 26, 6), bloc(-34, -25, -13, -3, 12, 36), bloc(-34, -25, 3, 13, 12, 36), mat(10, 26, 89)];
+}
+
+// A light: colour, kind, place, flashing. Its kind gives the arc over which it shows, in degrees clockwise from right
+// ahead: masthead (mat) 225°, sidelights (cote) 112.5° each, stern and towing lights 135° aft, all round (tour), and the
+// three sectors of a tricolour (tri).
+function feu(c, k, f, s, z, fl) { return { c: c, k: k, f: f, s: s, z: z, fl: !!fl }; }
+function cotes(f, s, z) { return [feu("g", "cote", f, s, z), feu("r", "cote", f, -s, z)]; }
+function poupe(f, z) { return [feu("w", "poupe", f, 0, z)]; }
+function pile(cs, f, top, s) { return cs.map(function (c, i) { return feu(c, "tour", f, s || 0, top - i * 14); }); }
+function secteur(l) {
+  if (l.k === "tour") return null;
+  if (l.k === "mat") return [-112.5, 112.5];
+  if (l.k === "poupe" || l.k === "remorque" || l.c === "w") return [112.5, 247.5];
+  return l.c === "g" ? [0, 112.5] : [-112.5, 0];
+}
+function shows(l, view) {
+  var a = secteur(l);
+  return !a || ((VUES.indexOf(view) * 90 - a[0]) % 360 + 360) % 360 <= a[1] - a[0];
+}
+
+// Each vessel: its name, its shape, its lights, and what tells it apart: signe (seen from every side), avant (seen
+// from ahead or abeam), arriere (seen from astern). mouille: at anchor.
+var REMORQUE = "Le feu jaune au-dessus du feu de poupe est le feu de remorquage : il tire une remorque, mais d'ici, impossible d'en connaître la longueur.";
+var NAVIRES = {
+  moteur: { nom: "Un navire à moteur de moins de 50 m", forme: petit(69),
+    feux: [feu("w", "mat", 20, 0, 66)].concat(cotes(2, 9.5, 26), poupe(-45, 13)),
+    avant: "Un seul feu de tête de mât, blanc et haut : navire à moteur de moins de 50 m." },
+  moteur50: { nom: "Un navire à moteur de plus de 50 m", forme: grand(89),
+    feux: [feu("w", "mat", 56, 0, 58), feu("w", "mat", -50, 0, 86)].concat(cotes(-46, 13.5, 36), poupe(-83, 16)),
+    avant: "Deux feux de tête de mât : navire à moteur de plus de 50 m." },
+  voilier: { nom: "Un voilier", forme: voilier(), feux: cotes(29, 4.5, 9).concat(poupe(-33, 8)),
+    avant: "Pas de feu de tête de mât au-dessus : c'est un navire à voile." },
+  voilierFeux: { nom: "Un voilier avec les feux facultatifs rouge sur vert", forme: voilier(),
+    feux: pile(["r", "g"], 4, 96).concat(cotes(29, 4.5, 9), poupe(-33, 8)),
+    signe: "Rouge sur vert en tête de mât, visibles sur tout l'horizon : voilier en mer." },
+  tricolore: { nom: "Un voilier avec un feu tricolore", forme: voilier(),
+    feux: [feu("g", "tri", 4, 2.5, 103), feu("r", "tri", 4, -2.5, 103), feu("w", "tri", 4, 0, 103)],
+    avant: "Tout en haut du mât, sans aucun feu blanc : le feu tricolore d'un voilier de moins de 20 m.",
+    arriere: "Seule sa hauteur, en tête de mât, distingue ce feu blanc d'un feu de poupe ordinaire : c'est l'indice d'un voilier." },
+  chalutier: { nom: "Un chalutier en pêche", forme: peche(86, true),
+    feux: pile(["g", "w"], 14, 82).concat(cotes(22, 9, 24), poupe(-39, 13)),
+    signe: "Vert sur blanc, visibles sur tout l'horizon : chalutier en pêche." },
+  chalutierStop: { nom: "Un chalutier en pêche, stoppé", forme: peche(86, true), feux: pile(["g", "w"], 14, 82),
+    signe: "Vert sur blanc, visibles sur tout l'horizon : chalutier en pêche." },
+  pecheur: { nom: "Un navire en pêche autre qu'un chalutier", forme: peche(86),
+    feux: pile(["r", "w"], 14, 82).concat(cotes(22, 9, 24), poupe(-39, 13)),
+    signe: "Rouge sur blanc : navire qui pêche aux filets ou aux lignes." },
+  nonMaitreStop: { nom: "Un navire non maître de sa manœuvre, stoppé", forme: petit(84), feux: pile(["r", "r"], 20, 80),
+    signe: "Deux feux rouges superposés : navire non maître de sa manœuvre." },
+  nonMaitre: { nom: "Un navire non maître de sa manœuvre", forme: petit(84),
+    feux: pile(["r", "r"], 20, 80).concat(cotes(2, 9.5, 26), poupe(-45, 13)),
+    signe: "Deux feux rouges superposés : navire non maître de sa manœuvre." },
+  cmr: { nom: "Un navire à capacité de manœuvre restreinte", forme: petit(69).concat(mat(-8, 30, 110, -8)),
+    feux: pile(["r", "w", "r"], -8, 106, -8).concat(feu("w", "mat", 20, 0, 66), cotes(2, 9.5, 26), poupe(-45, 13)),
+    signe: "Rouge, blanc, rouge superposés : navire à capacité de manœuvre restreinte." },
+  tirantEau: { nom: "Un navire handicapé par son tirant d'eau", forme: grand(89).concat(mat(-70, 52, 110, -9)),
+    feux: pile(["r", "r", "r"], -70, 106, -9).concat(feu("w", "mat", 56, 0, 58), feu("w", "mat", -50, 0, 86), cotes(-46, 13.5, 36), poupe(-83, 16)),
+    signe: "Trois feux rouges superposés : navire handicapé par son tirant d'eau." },
+  pilote: { nom: "Un pilote en service", forme: pilote(86),
+    feux: pile(["w", "r"], 4, 82).concat(cotes(12, 8, 20), poupe(-31, 12)),
+    signe: "Blanc sur rouge en tête de mât : pilote en service." },
+  mouillage: { nom: "Un navire de plus de 50 m au mouillage", forme: grand(89), mouille: true,
+    feux: [feu("w", "tour", 76, 0, 44), feu("w", "tour", -81, 0, 26)],
+    signe: "Deux feux blancs visibles sur tout l'horizon, sans feux de côté : navire de plus de 50 m au mouillage." },
+  echoue: { nom: "Un navire échoué", forme: grand(89), mouille: true,
+    feux: [feu("w", "tour", 76, 0, 44), feu("w", "tour", -81, 0, 26)].concat(pile(["r", "r"], -50, 86)),
+    signe: "Ses feux de mouillage et deux feux rouges superposés : navire échoué." },
+  remorqueur: { nom: "Un remorqueur avec une remorque de moins de 200 m", forme: remorqueur(83),
+    feux: [feu("w", "mat", 12, 0, 79), feu("w", "mat", 12, 0, 66)].concat(cotes(18, 8.5, 26), poupe(-31, 14), feu("y", "remorque", -31, 0, 28)),
+    avant: "Deux feux de tête de mât superposés sur le même mât : il remorque, et la remorque fait moins de 200 m.", arriere: REMORQUE },
+  remorqueur200: { nom: "Un remorqueur avec une remorque de plus de 200 m", forme: remorqueur(96),
+    feux: [feu("w", "mat", 12, 0, 92), feu("w", "mat", 12, 0, 79), feu("w", "mat", 12, 0, 66)].concat(cotes(18, 8.5, 26), poupe(-31, 14), feu("y", "remorque", -31, 0, 28)),
+    avant: "Trois feux de tête de mât superposés : il remorque, et la remorque dépasse 200 m.", arriere: REMORQUE },
+  aeroglisseur: { nom: "Un aéroglisseur", forme: aeroglisseur(),
+    feux: [feu("y", "tour", 10, 0, 86, true), feu("w", "mat", 10, 0, 66)].concat(cotes(22, 11, 22), poupe(-34, 12)),
+    signe: "Un feu jaune à éclats, visible sur tout l'horizon : aéroglisseur." }
+};
+
+// ship: the vessel, view: the side it shows. a[0] is the right answer.
 var FEUX = [
-  { lights: moteur("face", 1), ref: "Règle 23",
+  { ship: "moteur", view: "face", ref: "Règle 23",
     a: ["Un navire à moteur de moins de 50 m, qui vient vers vous", "Un voilier qui vient vers vous", "Un navire à moteur de plus de 50 m, qui vient vers vous"],
     why: "Un seul feu de tête de mât, blanc, au-dessus des deux feux de côté : navire à moteur. Vert à votre gauche, rouge à votre droite : il vous montre son avant. Au-delà de 50 m, il porterait un second feu de tête de mât, plus haut et en arrière." },
-  { lights: moteur("tribord", 2), ref: "Règles 21 et 23",
+  { ship: "moteur50", view: "tribord", ref: "Règles 21 et 23",
     a: ["Un navire à moteur de plus de 50 m, qui va vers votre droite", "Un navire à moteur de plus de 50 m, qui va vers votre gauche", "Un remorqueur"],
     why: "Deux feux de tête de mât décalés : plus de 50 m. Le feu avant est toujours le plus bas : il est à droite, le navire va donc vers la droite, et vous voyez son feu vert, côté tribord. Un remorqueur porte ses feux l'un au-dessus de l'autre, sur le même mât." },
-  { lights: moteur("babord", 2), ref: "Règle 23", q: "Dans quel sens va ce navire ?",
+  { ship: "moteur50", view: "babord", ref: "Règle 23", q: "Dans quel sens va ce navire ?",
     a: ["Vers votre gauche", "Vers votre droite", "Vers vous"],
     why: "Le feu de tête de mât avant est le plus bas : il est à gauche. Le feu rouge le confirme : vous voyez son côté bâbord, il va vers votre gauche. S'il venait vers vous, vous verriez ses deux feux de côté." },
-  { lights: moteur("arriere"), ref: "Règles 21 et 30",
+  { ship: "moteur", view: "arriere", ref: "Règles 21 et 30",
     a: ["Un navire vu de l'arrière", "Un voilier qui vient vers vous", "Un remorqueur vu de l'arrière"],
     why: "Un feu blanc seul, bas : le feu de poupe, visible sur 135° vers l'arrière. Un remorqueur y ajouterait un feu jaune au-dessus. Attention : un petit navire au mouillage montre lui aussi un seul feu blanc, visible tout autour de l'horizon." },
-  { lights: cotes("face"), ref: "Règle 25",
+  { ship: "voilier", view: "face", ref: "Règle 25",
     a: ["Un voilier qui vient vers vous", "Un navire à moteur qui vient vers vous", "Un navire non maître de sa manœuvre, qui fait route"],
     why: "Les deux feux de côté sans feu blanc au-dessus : navire à voile. Un navire à moteur aurait au moins un feu de tête de mât." },
-  { lights: pile(["r", "g"], 160, 80).concat(cotes("face")), ref: "Règle 25",
+  { ship: "voilierFeux", view: "face", ref: "Règle 25",
     a: ["Un voilier avec les feux facultatifs rouge sur vert", "Un navire non maître de sa manœuvre", "Un pilote en service"],
     why: "En tête de mât, rouge au-dessus de vert, visibles tout autour de l'horizon : un voilier peut les ajouter à ses feux de côté, mais pas avec un feu tricolore. Pour s'en souvenir : rouge sur vert, voilier en mer." },
-  { lights: [L("g", 160, 72)], ref: "Règle 25",
+  { ship: "tricolore", view: "tribord", ref: "Règle 25",
     a: ["Un voilier avec un feu tricolore, qui va vers votre droite", "Un voilier avec un feu tricolore, qui va vers votre gauche", "Un chalutier en pêche"],
     why: "Un seul feu de couleur, très haut, sans feu blanc : le feu tricolore en tête de mât d'un voilier de moins de 20 m. Vous voyez son secteur vert, côté tribord : il va vers votre droite." },
-  { lights: pile(["g", "w"], 160, 90).concat(cotes("face")), ref: "Règle 26",
+  { ship: "chalutier", view: "face", ref: "Règle 26",
     a: ["Un chalutier en pêche, qui fait route", "Un navire en pêche autre qu'un chalutier", "Un pilote en service"],
     why: "Vert au-dessus de blanc, visibles tout autour de l'horizon : chalutier en pêche. Avec ses feux de côté, il fait route. Pour s'en souvenir : vert sur blanc, chalutier." },
-  { lights: pile(["g", "w"], 160, 90), ref: "Règle 26",
+  { ship: "chalutierStop", view: "face", ref: "Règle 26",
     a: ["Un chalutier en pêche, stoppé", "Un chalutier en pêche, qui fait route", "Un navire au mouillage"],
     why: "Vert sur blanc sans feux de côté : chalutier en pêche, sans erre. Dès qu'il fait route, il allume ses feux de côté et son feu de poupe." },
-  { lights: pile(["r", "w"], 160, 90).concat(cotes("face")), ref: "Règle 26",
+  { ship: "pecheur", view: "face", ref: "Règle 26",
     a: ["Un navire en pêche autre qu'un chalutier, qui fait route", "Un chalutier en pêche", "Un navire non maître de sa manœuvre"],
     why: "Rouge au-dessus de blanc : navire qui pêche aux filets ou aux lignes, pas au chalut. Pour s'en souvenir : rouge sur blanc, pêcheur. Si ses engins s'étendent à plus de 150 m, un feu blanc de plus indique leur direction." },
-  { lights: pile(["r", "r"], 160, 90), ref: "Règles 27 et 30",
+  { ship: "nonMaitreStop", view: "face", ref: "Règles 27 et 30",
     a: ["Un navire non maître de sa manœuvre, stoppé", "Un navire échoué", "Un navire handicapé par son tirant d'eau"],
     why: "Deux feux rouges superposés, rien d'autre : navire non maître de sa manœuvre, sans erre. Le moyen mnémotechnique classique : rouge sur rouge, rien ne bouge. Échoué, il montrerait aussi ses feux blancs de mouillage." },
-  { lights: pile(["r", "r"], 160, 90).concat(cotes("face")), ref: "Règles 18 et 27",
+  { ship: "nonMaitre", view: "face", ref: "Règles 18 et 27",
     a: ["Un navire non maître de sa manœuvre, qui fait route", "Un voilier avec les feux facultatifs rouge sur vert", "Un navire à capacité de manœuvre restreinte"],
     why: "Deux rouges superposés et les feux de côté, sans feu de tête de mât : navire non maître de sa manœuvre qui a de l'erre. Il ne peut pas s'écarter de votre route : c'est à vous de l'éviter." },
-  { lights: pile(["r", "w", "r"], 176, 64).concat(mats("face", 1), cotes("face")), ref: "Règles 18 et 27",
+  { ship: "cmr", view: "face", ref: "Règles 18 et 27",
     a: ["Un navire à capacité de manœuvre restreinte, qui fait route", "Un navire handicapé par son tirant d'eau", "Un navire non maître de sa manœuvre"],
     why: "Rouge, blanc, rouge superposés : navire à capacité de manœuvre restreinte (drague, câblier, ravitaillement à la mer…). Avec son feu de tête de mât et ses feux de côté, il fait route. Il est privilégié : écartez-vous." },
-  { lights: pile(["r", "r", "r"], 178, 60).concat(mats("face", 2), cotes("face")), ref: "Règles 18 et 28",
+  { ship: "tirantEau", view: "face", ref: "Règles 18 et 28",
     a: ["Un navire handicapé par son tirant d'eau", "Un navire à capacité de manœuvre restreinte", "Un navire échoué"],
     why: "Trois feux rouges superposés, en plus des feux d'un navire à moteur : navire handicapé par son tirant d'eau, qui ne peut pas quitter le chenal. Ne gênez pas son passage." },
-  { lights: pile(["w", "r"], 160, 90).concat(cotes("face")), ref: "Règle 29",
+  { ship: "pilote", view: "face", ref: "Règle 29",
     a: ["Un pilote en service, qui fait route", "Un navire en pêche autre qu'un chalutier", "Un navire à capacité de manœuvre restreinte"],
     why: "Blanc au-dessus de rouge, en tête de mât : bateau pilote en service. Avec ses feux de côté, il fait route. Pour s'en souvenir : blanc sur rouge, pilote à bord." },
-  { lights: MOUILLAGE, ref: "Règles 23 et 30",
+  { ship: "mouillage", view: "tribord", ref: "Règles 23 et 30",
     a: ["Un navire de plus de 50 m au mouillage", "Un navire à moteur de plus de 50 m, qui fait route", "Un remorqueur qui fait route"],
     why: "Deux feux blancs, le plus haut à l'avant, sans feux de côté : navire de plus de 50 m au mouillage. En route, c'est l'inverse : le feu de tête de mât avant est le plus bas, et un feu de côté s'y ajoute." },
-  { lights: MOUILLAGE.concat(pile(["r", "r"], 160, 70)), ref: "Règle 30",
+  { ship: "echoue", view: "tribord", ref: "Règle 30",
     a: ["Un navire échoué", "Un navire non maître de sa manœuvre", "Un navire au mouillage"],
     why: "Les deux feux blancs du mouillage et deux feux rouges superposés : navire échoué. Danger : il y a peu d'eau à cet endroit." },
-  { lights: pile(["w", "w"], 160, 92, 13).concat(cotes("face")), ref: "Règle 24",
+  { ship: "remorqueur", view: "face", ref: "Règle 24",
     a: ["Un remorqueur avec une remorque de moins de 200 m, qui vient vers vous", "Un remorqueur avec une remorque de plus de 200 m", "Un navire à capacité de manœuvre restreinte"],
     why: "Deux feux de tête de mât superposés sur le même mât : un navire qui remorque. Trois feux signaleraient une remorque de plus de 200 m. Ne passez jamais entre un remorqueur et sa remorque." },
-  { lights: [L("y", 160, 128), L("w", 160, 144)], ref: "Règle 24",
+  { ship: "remorqueur", view: "arriere", ref: "Règle 24",
     a: ["Un remorqueur vu de l'arrière", "Un aéroglisseur", "Un navire vu de l'arrière, sans rien de particulier"],
     why: "Le feu jaune au-dessus du feu de poupe blanc est le feu de remorquage : le navire tire une remorque, qui le suit." },
-  { lights: pile(["w", "w", "w"], 184, 74, 13).concat(cotes("tribord")), ref: "Règle 24",
+  { ship: "remorqueur200", view: "tribord", ref: "Règle 24",
     a: ["Un remorqueur avec une remorque de plus de 200 m, qui va vers votre droite", "Un remorqueur avec une remorque de moins de 200 m", "Un navire handicapé par son tirant d'eau"],
     why: "Trois feux de tête de mât superposés : la remorque dépasse 200 m. Le vert : vous voyez son côté tribord, il va vers votre droite. La remorque, longue et peu éclairée, suit derrière." },
-  { lights: [L("y", 160, 84, true)].concat(moteur("face", 1)), ref: "Règle 23",
+  { ship: "aeroglisseur", view: "face", ref: "Règle 23",
     a: ["Un aéroglisseur", "Un remorqueur", "Un navire en pêche"],
     why: "Un feu jaune à éclats, visible tout autour de l'horizon, en plus des feux d'un navire à moteur : aéroglisseur. Il va vite : repérez-le tôt." },
-  { lights: moteur("face", 1), ref: "Règle 14", q: "Vous êtes à moteur. Il vient droit sur vous. Que faites-vous ?",
+  { ship: "moteur", view: "face", ref: "Règle 14", q: "Vous êtes à moteur. Il vient droit sur vous. Que faites-vous ?",
     a: ["Je viens sur tribord", "Je viens sur bâbord", "Je garde mon cap et ma vitesse"],
     why: "Deux navires à moteur face à face : chacun vient sur tribord, pour se croiser bâbord contre bâbord." },
-  { lights: moteur("babord", 1), ref: "Règle 15", q: "Vous êtes à moteur, sur une route de collision avec lui. Qui manœuvre ?",
+  { ship: "moteur", view: "babord", ref: "Règle 15", q: "Vous êtes à moteur, sur une route de collision avec lui. Qui manœuvre ?",
     a: ["Moi : je l'ai sur ma droite, je m'écarte", "Lui : je garde mon cap et ma vitesse", "Les deux : chacun vient sur bâbord"],
     why: "Vous voyez son feu rouge : il vous a sur sa gauche, vous l'avez sur votre droite. Entre navires à moteur qui se croisent, celui qui a l'autre sur sa droite s'écarte, de préférence en passant derrière lui. Pour s'en souvenir : feu rouge, je laisse passer." },
-  { lights: moteur("tribord", 1), ref: "Règles 15 et 17", q: "Vous êtes à moteur, sur une route de collision avec lui. Qui manœuvre ?",
+  { ship: "moteur", view: "tribord", ref: "Règles 15 et 17", q: "Vous êtes à moteur, sur une route de collision avec lui. Qui manœuvre ?",
     a: ["Lui : je garde mon cap et ma vitesse, en restant vigilant", "Moi : je m'écarte", "Les deux : chacun vient sur tribord"],
     why: "Vous voyez son feu vert : il vous a sur sa droite, c'est à lui de s'écarter. Vous gardez cap et vitesse, mais vous devez agir s'il ne manœuvre pas à temps." },
-  { lights: cotes("face"), ref: "Règles 9, 13 et 18", q: "Vous êtes à moteur. Qui s'écarte ?",
+  { ship: "voilier", view: "face", ref: "Règles 9, 13 et 18", q: "Vous êtes à moteur. Qui s'écarte ?",
     a: ["Moi : un navire à moteur s'écarte d'un voilier", "Chacun vient sur tribord, comme entre deux navires à moteur", "Lui : un voilier manœuvre plus facilement"],
     why: "Feux de côté sans feu de tête de mât : c'est un voilier. Un navire à moteur s'écarte de sa route, sauf s'il le rattrape, ou dans un chenal étroit où le voilier ne doit pas le gêner." }
 ];
@@ -3176,12 +3295,30 @@ function nightMarkup(lights) {
       '<circle cx="' + l.x + '" cy="' + l.y + '" r="3" fill="' + CORE[l.c] + '"></circle></g>';
   }).join("");
 }
-function nightSvg(lights) {
+// The lights a vessel shows from one side, placed in the picture.
+function vue(n, view) {
+  return n.feux.filter(function (l) { return shows(l, view); }).map(function (l) {
+    return { c: l.c, x: across(view, l.f, l.s), y: HZ - l.z, f: l.fl };
+  });
+}
+// Its dark shape: drawn once with an outline, then again over it, so that only the outer edge shows.
+function shapeSvg(n, view) {
+  var side = view === "tribord" || view === "babord", rim = "", body = "";
+  n.forme.forEach(function (p) {
+    var o = side ? p.side : p.end, d;
+    if (!o) return;
+    d = "M" + o.map(function (q) { return across(view, q[0], q[0]).toFixed(1) + " " + (HZ - q[1]).toFixed(1); }).join(" L") + " Z";
+    rim += '<path d="' + d + '"></path>';
+    body += '<path d="' + d + '"' + (p.voile ? ' class="sail"' : '') + '></path>';
+  });
+  return '<g class="hull-rim">' + rim + '</g><g class="hull">' + body + '</g>';
+}
+function nightSvg(n, view, shape) {
   return '<svg class="night" viewBox="62 48 196 134" aria-hidden="true">' +
     '<rect x="62" y="48" width="196" height="122" fill="url(#nightSky)"></rect>' +
     '<rect x="62" y="170" width="196" height="12" fill="#010205"></rect>' +
     '<line x1="62" y1="170" x2="258" y2="170" stroke="#13232f" stroke-width="0.6"></line>' +
-    nightMarkup(lights) + '</svg>';
+    (shape ? shapeSvg(n, view) : '') + nightMarkup(vue(n, view)) + '</svg>';
 }
 // Seen from above, bow up: the arc over which each light can be seen, in degrees clockwise from right ahead.
 var SECTEUR = { w: "#ffe9c2", r: "#ff4a3d", g: "#2be88f", y: "#ffc23a" };
@@ -3211,45 +3348,45 @@ var REGLES = [
       text: "Visible sur 360°. Les feux qui disent ce que fait le navire (pêche, mouillage, manœuvre limitée, pilote) sont de ce type, souvent superposés. Un feu à éclats émet au moins 120 éclats par minute." }
   ]},
   { title: "Navires qui font route", items: [
-    { lights: moteur("face", 1), name: "Navire à moteur de moins de 50 m", ref: "Règle 23",
+    { ship: "moteur", view: "face", name: "Navire à moteur de moins de 50 m", ref: "Règle 23",
       text: "Un feu de tête de mât, deux feux de côté, un feu de poupe. Vu de face : le vert à votre gauche, le rouge à votre droite. Sous 12 m, un feu blanc visible sur tout l'horizon peut remplacer le feu de tête de mât et le feu de poupe." },
-    { lights: moteur("tribord", 2), name: "Navire à moteur de plus de 50 m", ref: "Règle 23",
+    { ship: "moteur50", view: "tribord", name: "Navire à moteur de plus de 50 m", ref: "Règle 23",
       text: "Deux feux de tête de mât, celui de l'arrière plus haut que celui de l'avant : leur décalage donne le sens de marche. Ici l'avant est à droite, et le feu vert confirme qu'il présente son côté tribord." },
-    { lights: cotes("face"), name: "Navire à voile", ref: "Règle 25",
+    { ship: "voilier", view: "face", name: "Navire à voile", ref: "Règle 25",
       text: "Feux de côté et feu de poupe, sans feu de tête de mât. Dès qu'il avance au moteur, même voiles hautes, c'est un navire à moteur et il en porte les feux." },
-    { lights: [L("g", 160, 72)], name: "Voilier de moins de 20 m, feu tricolore", ref: "Règle 25",
+    { ship: "tricolore", view: "tribord", name: "Voilier de moins de 20 m, feu tricolore", ref: "Règle 25",
       text: "Les feux de côté et de poupe réunis dans une seule lanterne en tête de mât, bien visible au-dessus des vagues. Ici, vous voyez son secteur vert." },
-    { lights: pile(["r", "g"], 160, 80).concat(cotes("face")), name: "Voilier avec les feux facultatifs", ref: "Règle 25",
+    { ship: "voilierFeux", view: "face", name: "Voilier avec les feux facultatifs", ref: "Règle 25",
       text: "En tête de mât, rouge au-dessus de vert, visibles sur tout l'horizon, en plus des feux de côté et de poupe. Ils ne se portent pas avec un feu tricolore." },
-    { lights: [L("y", 160, 84, true)].concat(moteur("face", 1)), name: "Aéroglisseur", ref: "Règle 23",
+    { ship: "aeroglisseur", view: "face", name: "Aéroglisseur", ref: "Règle 23",
       text: "Quand il se déplace sur coussin d'air : les feux d'un navire à moteur et un feu jaune à éclats, visible sur tout l'horizon." }
   ]},
   { title: "Navires en pêche", items: [
-    { lights: pile(["g", "w"], 160, 90).concat(cotes("face")), name: "Chalutier", ref: "Règle 26",
+    { ship: "chalutier", view: "face", name: "Chalutier", ref: "Règle 26",
       text: "Vert au-dessus de blanc, visibles sur tout l'horizon. Feux de côté et de poupe quand il fait route, éteints quand il est stoppé. Au-delà de 50 m, il ajoute un feu de tête de mât en arrière et plus haut que le vert." },
-    { lights: pile(["r", "w"], 160, 90).concat(cotes("face")), name: "Autre navire en pêche", ref: "Règle 26",
+    { ship: "pecheur", view: "face", name: "Autre navire en pêche", ref: "Règle 26",
       text: "Rouge au-dessus de blanc : pêche aux filets ou aux lignes. Feux de côté et de poupe quand il fait route. Si ses engins s'étendent à plus de 150 m, un feu blanc de plus en indique la direction." }
   ]},
   { title: "Navires gênés dans leur manœuvre", items: [
-    { lights: pile(["r", "r"], 160, 90).concat(cotes("face")), name: "Navire non maître de sa manœuvre", ref: "Règle 27",
+    { ship: "nonMaitre", view: "face", name: "Navire non maître de sa manœuvre", ref: "Règle 27",
       text: "Deux feux rouges superposés, visibles sur tout l'horizon : avarie de barre ou de moteur, par exemple. Feux de côté et de poupe seulement s'il a de l'erre, jamais de feu de tête de mât." },
-    { lights: pile(["r", "w", "r"], 176, 64).concat(mats("face", 1), cotes("face")), name: "Navire à capacité de manœuvre restreinte", ref: "Règle 27",
+    { ship: "cmr", view: "face", name: "Navire à capacité de manœuvre restreinte", ref: "Règle 27",
       text: "Rouge, blanc, rouge superposés : drague, câblier, ravitaillement à la mer… Il y ajoute les feux d'un navire à moteur s'il fait route, ou ses feux de mouillage s'il est au mouillage." },
-    { lights: pile(["r", "r", "r"], 178, 60).concat(mats("face", 2), cotes("face")), name: "Navire handicapé par son tirant d'eau", ref: "Règle 28",
+    { ship: "tirantEau", view: "face", name: "Navire handicapé par son tirant d'eau", ref: "Règle 28",
       text: "Trois feux rouges superposés, en plus des feux d'un navire à moteur. Il ne peut pas s'écarter du chenal : ne gênez pas son passage." }
   ]},
   { title: "Pilote et remorquage", items: [
-    { lights: pile(["w", "r"], 160, 90).concat(cotes("face")), name: "Bateau pilote en service", ref: "Règle 29",
+    { ship: "pilote", view: "face", name: "Bateau pilote en service", ref: "Règle 29",
       text: "Blanc au-dessus de rouge, en tête de mât. Feux de côté et de poupe quand il fait route, feux de mouillage quand il est au mouillage." },
-    { lights: pile(["w", "w"], 160, 92, 13).concat(cotes("face")), name: "Remorqueur, vu de face", ref: "Règle 24",
+    { ship: "remorqueur", view: "face", name: "Remorqueur, vu de face", ref: "Règle 24",
       text: "Deux feux de tête de mât superposés, trois si la remorque dépasse 200 m, avec ses feux de côté. La remorque porte elle aussi des feux de côté et un feu de poupe." },
-    { lights: [L("y", 160, 128), L("w", 160, 144)], name: "Remorqueur, vu de l'arrière", ref: "Règle 24",
+    { ship: "remorqueur", view: "arriere", name: "Remorqueur, vu de l'arrière", ref: "Règle 24",
       text: "Le feu de remorquage jaune, au-dessus du feu de poupe blanc. Ne passez jamais entre un remorqueur et sa remorque." }
   ]},
   { title: "Au mouillage, échoué", items: [
-    { lights: MOUILLAGE, name: "Navire au mouillage", ref: "Règle 30",
+    { ship: "mouillage", view: "tribord", name: "Navire au mouillage", ref: "Règle 30",
       text: "Un feu blanc à l'avant et un autre, plus bas, à l'arrière, visibles sur tout l'horizon. Sous 50 m, un seul feu blanc suffit. Au-delà de 100 m, il éclaire aussi ses ponts." },
-    { lights: MOUILLAGE.concat(pile(["r", "r"], 160, 70)), name: "Navire échoué", ref: "Règle 30",
+    { ship: "echoue", view: "tribord", name: "Navire échoué", ref: "Règle 30",
       text: "Ses feux de mouillage et deux feux rouges superposés. Signal de danger : il y a peu d'eau à cet endroit." }
   ]}
 ];
@@ -3297,7 +3434,7 @@ function ripamBack() {
 }
 function ripamWhere() {
   if (ripamMode === "quiz" && quiz && !$("quizCard").hidden) return { knot: "Feux · quiz", step: "Carte : " + quiz.cards[quiz.i].a[0] };
-  if (ripamMode === "revisions" && rev) return { knot: "Feux · révisions", step: "Carte : " + rev.deck[rev.i].a[0] };
+  if (ripamMode === "revisions" && rev) return { knot: "Feux · révisions", step: "Carte : " + reponse(rev.deck[rev.i], VUES[rev.k & 3]).a };
   return { knot: "Feux de navigation", step: ripamMode === "reglement" ? "Règlement" : ripamMode === "quiz" ? "Fin de série" : "Accueil des feux" };
 }
 
@@ -3313,7 +3450,7 @@ function quizStart() {
 function quizShow() {
   var c = quiz.cards[quiz.i], box = $("quizAnswers"), card = $("quizCard");
   quizCount();
-  $("quizNight").innerHTML = nightSvg(c.lights);
+  $("quizNight").innerHTML = nightSvg(NAVIRES[c.ship], c.view);
   $("quizQ").textContent = c.q || "Que voyez-vous ?";
   box.textContent = "";
   shuffle(c.a.map(function (t, k) { return { t: t, ok: k === 0 }; })).forEach(function (ans) {
@@ -3381,7 +3518,7 @@ function buildRules() {
     grp.items.forEach(function (it) {
       var art = document.createElement("article"), name = document.createElement("h3"), text = document.createElement("p"), ref = document.createElement("p");
       art.className = "rule";
-      art.innerHTML = it.arcs ? sectorSvg(it.arcs) : nightSvg(it.lights);
+      art.innerHTML = it.arcs ? sectorSvg(it.arcs) : nightSvg(NAVIRES[it.ship], it.view);
       name.textContent = it.name; text.textContent = it.text;
       ref.className = "quiz-ref"; ref.textContent = "RIPAM, " + lower(it.ref);
       art.appendChild(name); art.appendChild(text); art.appendChild(ref);
@@ -3397,19 +3534,63 @@ function buildRules() {
   foot.appendChild(btn); host.appendChild(foot);
 }
 
-// Revision cards: random cards, the question in front and the answer on the back, no score.
-function reviseStart() { rev = { deck: shuffle(FEUX), i: 0 }; reviseShow(); }
+// Revision cards: random cards, the question in front and the answer on the back, no score. The vessel can be
+// turned a quarter at a time (rev.k counts the quarters, so that the little boat always turns the short way).
+var ALLURE = { face: "qui vient vers vous", tribord: "qui va vers votre droite", babord: "qui va vers votre gauche", arriere: "qui s'éloigne de vous" };
+var VUE_NOM = { face: "Vu de l'avant", tribord: "Vu par tribord", arriere: "Vu de l'arrière", babord: "Vu par bâbord" };
+// The back of a card: its own text for the side it was written for; from another side, what its lights tell from there.
+function reponse(c, view) {
+  if (view === c.view) return { a: c.a[0], why: c.why };
+  var n = NAVIRES[c.ship], tri = n.feux.some(function (l) { return l.k === "tri"; }),
+    route = tri || n.feux.some(function (l) { return l.k === "cote"; }),
+    m = n.feux.filter(function (l) { return l.k === "mat"; }), deux = m.length === 2 && m[0].f !== m[1].f,
+    cote = view === "tribord" ? "droite" : "gauche", a = n.nom, sens;
+  if (route) {
+    a += ", " + ALLURE[view];
+    if (view === "face") sens = (tri ? "De face, vous voyez à la fois le vert et le rouge de son feu tricolore"
+      : "De face, vous voyez ses deux feux de côté, le vert à votre gauche et le rouge à votre droite") + " : il vient vers vous." +
+      (deux ? " Ses deux feux de tête de mât paraissent alors l'un au-dessus de l'autre." : "");
+    else if (view === "arriere") sens = tri ? "De l'arrière, vous voyez le secteur blanc de son feu tricolore : il s'éloigne de vous."
+      : "De l'arrière, ses feux de côté" + (m.length ? " et de tête de mât" : "") + " sont cachés : vous voyez son feu de poupe, blanc et bas. Il s'éloigne de vous.";
+    else sens = (tri ? "Vous voyez le secteur " + (cote === "droite" ? "vert" : "rouge") + " de son feu tricolore"
+      : "Vous voyez son feu " + (cote === "droite" ? "vert, côté tribord" : "rouge, côté bâbord")) + " : il va vers votre " + cote + "." +
+      (deux ? " Le feu de tête de mât avant, le plus bas, est bien à votre " + cote + "." : "");
+  } else if (n.mouille) {
+    if (view === "face" || view === "arriere") sens = "Vu dans son axe, ses deux feux blancs paraissent l'un au-dessus de l'autre. De côté, le plus haut marquerait l'avant.";
+    else { a += ", l'avant à votre " + cote; sens = "Le plus haut des deux feux blancs est à l'avant : ici, à votre " + cote + "."; }
+  } else sens = "Sans erre, il n'allume ni feux de côté ni feu de poupe : il montre les mêmes feux sous tous les angles.";
+  return { a: a, why: sens + " " + (n.signe || (view === "arriere"
+    ? n.arriere || "Rien ne dit que c'est " + lower(n.nom) + " : tout navire qui fait route montre ce même feu." : n.avant)) };
+}
+function reviseStart() { rev = { deck: shuffle(FEUX), i: 0, k: 0 }; reviseShow(); }
 function reviseShow() {
   var c = rev.deck[rev.i], flip = $("flip"), box = $("revise");
   flip.classList.add("instant"); flip.classList.remove("turned"); void flip.offsetWidth; flip.classList.remove("instant");
-  $("revNight").innerHTML = nightSvg(c.lights);
+  rev.k = VUES.indexOf(c.view);
+  $("revSpin").hidden = !!c.q;   // a question about one situation keeps its side
+  reviseView(true);
   $("revQ").textContent = c.q || "Que voyez-vous ?";
-  $("revA").textContent = c.a[0];
-  $("revWhy").textContent = c.why;
   $("revRef").textContent = "RIPAM, " + lower(c.ref);
   paintTurn(false);
   $("quizCount").textContent = "Carte " + (rev.i + 1) + " sur " + rev.deck.length + " · sans score";
   box.classList.remove("swap"); void box.offsetWidth; box.classList.add("swap");
+}
+// The vessel from the side it now shows, its dark shape behind its lights; the back of the card follows.
+function reviseView(now) {
+  var c = rev.deck[rev.i], view = VUES[rev.k & 3], r = reponse(c, view), boat = $("revBoat");
+  $("revNight").innerHTML = nightSvg(NAVIRES[c.ship], view, true);
+  $("revView").textContent = VUE_NOM[view];
+  boat.classList.toggle("instant", !!now);
+  boat.style.transform = "rotate(" + (180 - 90 * rev.k) + "deg)";
+  if (now) { void boat.getBoundingClientRect(); boat.classList.remove("instant"); }
+  $("revA").textContent = r.a;
+  $("revWhy").textContent = r.why;
+}
+function reviseSpin(d) {
+  var night = $("revNight");
+  rev.k += d;
+  reviseView(false);
+  night.classList.remove("turning"); void night.offsetWidth; night.classList.add("turning");
 }
 function paintTurn(on) {
   $("revTurn").textContent = on ? "Revoir la question" : "Voir la réponse";
@@ -3432,6 +3613,8 @@ $("quizReport").addEventListener("click", reportOpen);
 $("flip").addEventListener("click", reviseTurn);
 $("revTurn").addEventListener("click", reviseTurn);
 $("revNext").addEventListener("click", reviseNext);
+$("revLeft").addEventListener("click", function (ev) { ev.stopPropagation(); reviseSpin(1); });
+$("revRight").addEventListener("click", function (ev) { ev.stopPropagation(); reviseSpin(-1); });
 $("revReport").addEventListener("click", function (ev) { ev.stopPropagation(); reportOpen(); });
 Array.prototype.forEach.call(document.querySelectorAll(".ripam-choice"), function (a) {
   a.addEventListener("click", function (ev) { ev.preventDefault(); slide("push", function () { openRipam(a.getAttribute("data-mode")); }); });
