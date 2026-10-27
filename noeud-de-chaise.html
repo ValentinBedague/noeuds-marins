@@ -1,4 +1,4 @@
-<title>Nœuds marins</title>
+<title>Manuel du matelot</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Libre+Caslon+Text:ital@0;1&display=swap">
 <style>
 /* Layout: one-screen app. The 3D stage is the page; the knot sheet docks right on wide screens, bottom on phones.
@@ -10,6 +10,9 @@
   --muted: #557082;
   --line: #b7cad3;
   --accent: #a3246a;
+  --ok: #2f7d55;
+  --ok-soft: rgba(47, 125, 85, 0.12);
+  --ko-soft: rgba(163, 36, 106, 0.1);
   --on-accent: #ffffff;
 
   --stage: #12283a;
@@ -39,12 +42,14 @@
   :root:not([data-theme="light"]) {
     --bg: #0d1c28; --surface: #12252f; --ink: #e7eff3; --muted: #8fa6b5;
     --line: #26404f; --accent: #e879b4; --on-accent: #2a0a1b;
+    --ok: #6fd3a0; --ok-soft: rgba(111, 211, 160, 0.14); --ko-soft: rgba(232, 121, 180, 0.14);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0d1c28; --surface: #12252f; --ink: #e7eff3; --muted: #8fa6b5;
   --line: #26404f; --accent: #e879b4; --on-accent: #2a0a1b;
+    --ok: #6fd3a0; --ok-soft: rgba(111, 211, 160, 0.14); --ko-soft: rgba(232, 121, 180, 0.14);
   color-scheme: dark;
 }
 
@@ -426,6 +431,114 @@ h2 {
 .resume span { display: block; font-size: 14px; }
 .home.in-need .resume { display: none; }
 
+/* ---------- quiz: navigation lights (RIPAM) ---------- */
+/* ---------- home: choose a subject ---------- */
+.lib-back { align-self: flex-start; margin-bottom: -8px; }
+.hub { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 640px; }
+.home:not(.in-hub) .hub, .home:not(.in-hub) .hub-lede,
+.home.in-hub #tally, .home.in-hub .lib-back, .home.in-hub .searchbar, .home.in-hub .resume, .home.in-hub .needs,
+.home.in-hub .need-view, .home.in-hub .families, .home.in-hub .empty, .home.in-need .lib-back { display: none; }
+.hub-tile { display: flex; flex-direction: column; gap: 10px; min-width: 0; color: inherit; text-decoration: none; }
+.hub-pic { position: relative; display: block; aspect-ratio: 1; border-radius: 18px; overflow: hidden; background: radial-gradient(ellipse at 50% 42%, var(--stage) 0%, var(--stage-deep) 100%); }
+.hub-pic img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s var(--ease); }
+.hub-pic img[hidden] { display: none; }
+@media (hover: hover) { .hub-tile:hover .hub-pic img { transform: scale(1.04); } }
+.hub-night { background: linear-gradient(180deg, #010307 0%, #08131d 76%, #010205 76%); }
+.hub-night i { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; }
+.hub-night .w { left: 50%; top: 34%; background: #fffaf0; box-shadow: 0 0 14px 4px rgba(255, 233, 194, 0.6); }
+.hub-night .g { left: 40%; top: 56%; background: #5dffb0; box-shadow: 0 0 14px 4px rgba(25, 232, 138, 0.5); }
+.hub-night .r { left: 60%; top: 56%; background: #ff5247; box-shadow: 0 0 14px 4px rgba(255, 42, 31, 0.5); }
+.hub-text b { display: block; font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: clamp(21px, 4vw, 28px); line-height: 1.15; }
+.hub-text span { display: block; font-size: 14px; color: var(--muted); }
+.hub-text small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+
+.quiz {
+  max-width: 640px;
+  margin-inline: auto;
+  --gutter: clamp(16px, 4vw, 40px);
+  padding: 22px var(--gutter) 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.quiz[hidden], .quiz [hidden] { display: none; }
+.quiz-back { align-self: flex-start; }
+.quiz-head { display: flex; flex-direction: column; gap: 4px; }
+.quiz-title { font-size: clamp(30px, 5vw, 42px); }
+.quiz-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.quiz-card, .quiz-end { display: flex; flex-direction: column; gap: 14px; }
+.night { display: block; width: 100%; height: auto; border-radius: 16px; background: #010306; }
+.night .blink { animation: blink 0.5s steps(1, end) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.quiz-q { font-size: 22px; }
+.quiz-answers { display: flex; flex-direction: column; gap: 8px; }
+.quiz-answer { text-align: left; padding: 13px 16px; border-radius: 12px; font-size: 15px; line-height: 1.35; }
+.quiz-answer:disabled { opacity: 0.5; cursor: default; }
+.quiz-answer.right { opacity: 1; border-color: var(--ok); background: var(--ok-soft); }
+.quiz-answer.wrong { opacity: 1; border-color: var(--accent); background: var(--ko-soft); }
+.quiz-why { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.quiz-verdict { font-weight: 600; }
+.quiz-verdict.is-ok { color: var(--ok); }
+.quiz-verdict.is-ko { color: var(--accent); }
+.quiz-ref { font-size: 12.5px; color: var(--muted); }
+.linkish { padding: 0; border: 0; border-radius: 0; background: none; font-size: inherit; font-weight: 400; color: inherit; text-decoration: underline; }
+.quiz .primary { align-self: flex-start; padding: 11px 18px; border-radius: 12px; font-size: 14px; font-weight: 600; background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.quiz-score { font-family: var(--font-display); font-size: 56px; line-height: 1; }
+.quiz-misses { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.quiz-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* the three ways into the lights */
+.ripam-menu { display: flex; flex-direction: column; gap: 10px; }
+.ripam-choice { display: flex; align-items: center; gap: 14px; padding: 16px; color: inherit; text-decoration: none; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.ripam-choice:hover { border-color: var(--muted); }
+.ripam-choice > svg { width: 24px; height: 24px; flex: none; color: var(--accent); }
+.ripam-choice > svg:last-child { width: 18px; height: 18px; margin-left: auto; color: var(--muted); }
+.rc-text b { display: block; font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 22px; line-height: 1.2; }
+.rc-text span, .rc-text small { display: block; }
+.rc-text span { font-size: 14px; color: var(--muted); }
+.rc-text small { margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+
+/* rules: each light with its diagram */
+.rules { display: flex; flex-direction: column; gap: 30px; }
+.rules-group { display: flex; flex-direction: column; gap: 12px; }
+.rules-group > h2 { font-size: 24px; }
+.rules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px 18px; }
+.rule { display: flex; flex-direction: column; gap: 6px; }
+.rule .night { margin-bottom: 4px; border-radius: 14px; }
+.rule h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.rule p { font-size: 14.5px; }
+
+/* revision cards: the question in front, the answer on the back */
+.revise { display: flex; flex-direction: column; gap: 14px; }
+.flip { perspective: 1400px; cursor: pointer; }
+.flip-inner { display: grid; transform-style: preserve-3d; transition: transform 0.55s var(--ease); }
+.flip.turned .flip-inner { transform: rotateY(180deg); }
+.flip.instant .flip-inner { transition: none; }
+.face {
+  grid-area: 1 / 1;
+  align-self: stretch;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--stage-deep);
+  color: var(--stage-ink);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.face.back { transform: rotateY(180deg); justify-content: center; padding: 22px 20px; }
+.face .night { border-radius: 12px; }
+.flip-q { padding: 0 4px; font-family: var(--font-display); font-style: italic; font-size: 21px; line-height: 1.25; }
+.flip-hint { padding: 0 4px 4px; font-size: 12.5px; color: var(--stage-muted); }
+.flip-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stage-accent); }
+.flip-a { font-family: var(--font-display); font-style: italic; font-size: 24px; line-height: 1.2; }
+.flip-why { font-size: 15px; }
+.flip-ref { font-size: 12.5px; color: var(--stage-muted); }
+.revise.swap .flip { animation: rise 0.3s var(--ease) both; }
+
 .needs { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .needs h2 { font-size: 22px; }
 .need-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -572,12 +685,14 @@ button.menu-item:hover { background: var(--bg); }
 @keyframes glow { 0% { opacity: 0; } 25% { opacity: 0.2; } 100% { opacity: 0; } }
 
 /* press and hover */
-button, .back, .card-pic, .resume {
+button, .back, .card-pic, .resume, .hub-pic, .ripam-choice {
   transition: background-color 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease),
     opacity 0.16s var(--ease), transform 0.16s var(--ease);
 }
 button:active:not(:disabled), .back:active { transform: scale(0.94); }
-.resume:active { transform: scale(0.98); }
+.resume:active, .ripam-choice:active { transform: scale(0.98); }
+.hub-tile:active .hub-pic { transform: scale(0.97); }
+.hub-tile { animation: rise 0.42s var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms); }
 .stage .step-arrow:active:not(:disabled) { transform: translateY(-50%) scale(0.86); }
 .step-arrow svg, .tool svg { transition: transform 0.3s var(--ease); }
 .step-arrow.next:active svg { transform: translateX(4px); }
@@ -638,6 +753,12 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
 
 /* report dialog */
 .report[open] { animation: pop 0.22s var(--ease) both; }
+.quiz-head, .quiz-end { animation: rise 0.4s var(--ease) both; }
+.quiz-card.swap .night, .quiz-card.swap .quiz-q, .quiz-card.swap .quiz-answers { animation: rise 0.3s var(--ease) both; }
+.quiz-card.swap .quiz-q { animation-delay: 40ms; }
+.quiz-card.swap .quiz-answers { animation-delay: 80ms; }
+.quiz-why:not([hidden]) { animation: rise 0.25s var(--ease) both; }
+@media (prefers-reduced-motion: reduce) { .night .blink { animation: none; } }
 .menu { animation: pop 0.18s var(--ease) both; }
 .report[open]::backdrop { animation: fade 0.22s ease both; }
 
@@ -708,12 +829,18 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
     <button class="menu-item" id="reportHome" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.4a2.5 2.5 0 1 1 3.7 2.2c-.8.5-1.3 1-1.3 1.9"></path><path d="M12 17h.01"></path></svg><span>Signaler un problème<small>Un nœud faux, un affichage cassé, une idée</small></span></button>
     <p class="menu-foot" id="menuFoot"></p>
   </div>
+  <button class="lib-back" id="libBack" type="button">‹ Accueil</button>
   <header class="masthead">
     <p class="kicker">Matelotage</p>
-    <h1 class="brand">Nœuds marins</h1>
+    <h1 class="brand">Manuel du matelot</h1>
     <p class="lede" id="tally"></p>
+    <p class="lede hub-lede">Les nœuds en 3D et les feux de navigation, dans la poche.</p>
     <p class="caution"><strong>Prudence.</strong> Cette application est une aide à l'apprentissage et ne remplace pas une formation. Entraînez-vous et faites vérifier vos nœuds par une personne expérimentée avant de vous y fier. Un nœud mal fait ou mal choisi peut lâcher, endommager le matériel et provoquer des blessures graves, voire mortelles.</p>
   </header>
+  <nav class="hub" id="hub" aria-label="Choisir un thème">
+    <a class="hub-tile" id="hubKnots" href="#noeuds"><span class="hub-pic"><img id="hubKnotImg" alt="" hidden></span><span class="hub-text"><b>Nœuds</b><span>Les nœuds en 3D, étape par étape</span><small id="hubKnotsNote"></small></span></a>
+    <a class="hub-tile" id="hubRipam" href="#ripam" style="--i: 1"><span class="hub-pic hub-night" aria-hidden="true"><i class="w"></i><i class="g"></i><i class="r"></i></span><span class="hub-text"><b>Feux de navigation</b><span>RIPAM : quiz, règlement, révisions</span><small id="hubRipamNote"></small></span></a>
+  </nav>
   <div class="searchbar">
     <div class="search-field">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="M13 13l4.5 4.5"></path></svg>
@@ -790,6 +917,55 @@ html[data-slide="pop"] .home { animation: slide-pop 0.44s cubic-bezier(0.32, 0.7
   </aside>
 
 </div>
+
+<main class="quiz" id="quiz" hidden>
+  <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false"><defs><linearGradient id="nightSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#010307"></stop><stop offset="1" stop-color="#08131d"></stop></linearGradient><radialGradient id="halo-w"><stop offset="0" stop-color="#ffe9c2" stop-opacity="0.95"></stop><stop offset="0.35" stop-color="#ffe9c2" stop-opacity="0.35"></stop><stop offset="1" stop-color="#ffe9c2" stop-opacity="0"></stop></radialGradient><linearGradient id="refl-w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe9c2" stop-opacity="0.55"></stop><stop offset="1" stop-color="#ffe9c2" stop-opacity="0"></stop></linearGradient><radialGradient id="halo-r"><stop offset="0" stop-color="#ff2a1f" stop-opacity="0.95"></stop><stop offset="0.35" stop-color="#ff2a1f" stop-opacity="0.35"></stop><stop offset="1" stop-color="#ff2a1f" stop-opacity="0"></stop></radialGradient><linearGradient id="refl-r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2a1f" stop-opacity="0.55"></stop><stop offset="1" stop-color="#ff2a1f" stop-opacity="0"></stop></linearGradient><radialGradient id="halo-g"><stop offset="0" stop-color="#19e88a" stop-opacity="0.95"></stop><stop offset="0.35" stop-color="#19e88a" stop-opacity="0.35"></stop><stop offset="1" stop-color="#19e88a" stop-opacity="0"></stop></radialGradient><linearGradient id="refl-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#19e88a" stop-opacity="0.55"></stop><stop offset="1" stop-color="#19e88a" stop-opacity="0"></stop></linearGradient><radialGradient id="halo-y"><stop offset="0" stop-color="#ffb800" stop-opacity="0.95"></stop><stop offset="0.35" stop-color="#ffb800" stop-opacity="0.35"></stop><stop offset="1" stop-color="#ffb800" stop-opacity="0"></stop></radialGradient><linearGradient id="refl-y" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb800" stop-opacity="0.55"></stop><stop offset="1" stop-color="#ffb800" stop-opacity="0"></stop></linearGradient></defs></svg>
+  <button class="quiz-back" id="quizBack" type="button">‹ Accueil</button>
+  <header class="quiz-head">
+    <p class="kicker" id="ripamKicker">RIPAM</p>
+    <h1 class="quiz-title" id="ripamTitle">Feux de navigation</h1>
+    <p class="quiz-count" id="quizCount"></p>
+  </header>
+  <nav class="ripam-menu" id="ripamMenu" aria-label="Feux de navigation">
+    <a class="ripam-choice" href="#ripam-quiz" data-mode="quiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 7-7"></path><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"></path></svg><span class="rc-text"><b>Quiz</b><span>Une situation, trois réponses, un score.</span><small id="ripamBest"></small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+    <a class="ripam-choice" href="#ripam-reglement" data-mode="reglement"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg><span class="rc-text"><b>Règlement</b><span>Chaque feu expliqué, avec son schéma.</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+    <a class="ripam-choice" href="#ripam-revisions" data-mode="revisions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="13" height="14" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path></svg><span class="rc-text"><b>Révisions</b><span>Des cartes au hasard : la question, puis la réponse au dos.</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a>
+  </nav>
+  <section class="quiz-card" id="quizCard" aria-live="polite" hidden>
+    <div id="quizNight"></div>
+    <h2 class="quiz-q" id="quizQ"></h2>
+    <div class="quiz-answers" id="quizAnswers"></div>
+    <div class="quiz-why" id="quizWhy" hidden>
+      <p class="quiz-verdict" id="quizVerdict"></p>
+      <p id="quizText"></p>
+      <p class="quiz-ref"><span id="quizRef"></span> · <button class="linkish" id="quizReport" type="button">Signaler une erreur</button></p>
+      <button class="primary" id="quizNext" type="button">Carte suivante</button>
+    </div>
+  </section>
+  <section class="quiz-end" id="quizEnd" hidden>
+    <p class="quiz-score" id="quizScore"></p>
+    <p id="quizMsg"></p>
+    <ul class="quiz-misses" id="quizMisses"></ul>
+    <div class="quiz-actions">
+      <button class="primary" id="quizAgain" type="button">Nouvelle série</button>
+      <button id="quizHome" type="button">Retour aux feux</button>
+    </div>
+  </section>
+  <section class="rules" id="rules" hidden></section>
+  <section class="revise" id="revise" hidden>
+    <div class="flip" id="flip">
+      <div class="flip-inner">
+        <div class="face front"><div id="revNight"></div><p class="flip-q" id="revQ"></p><p class="flip-hint">Touchez la carte pour la retourner</p></div>
+        <div class="face back" aria-hidden="true"><p class="flip-kicker">Réponse</p><p class="flip-a" id="revA"></p><p class="flip-why" id="revWhy"></p><p class="flip-ref"><span id="revRef"></span> · <button class="linkish" id="revReport" type="button">Signaler une erreur</button></p></div>
+      </div>
+    </div>
+    <div class="quiz-actions">
+      <button class="primary" id="revTurn" type="button">Voir la réponse</button>
+      <button id="revNext" type="button">Carte suivante</button>
+    </div>
+  </section>
+  <p class="caution">Les feux suivent le RIPAM, règles 20 à 31. Ce contenu n'a pas encore été relu par un formateur : en cas de doute, le texte du règlement fait foi.</p>
+</main>
 
 <dialog class="report" id="reportDlg" aria-labelledby="reportTitle">
   <form id="reportForm">
@@ -2456,6 +2632,7 @@ document.addEventListener("fullscreenchange", function () { if (!document.fullsc
 var REPORT = null;
 var reportDlg = $("reportDlg"), reportMsg = $("reportMsg"), reportStatus = $("reportStatus"), reportSend = $("reportSend"), reportShown = false;
 function reportWhere() {
+  if (view === "ripam") return ripamWhere();
   if (view !== "knot") return { knot: "Bibliothèque", step: need ? "Cas : " + need.label : "Accueil" };
   return { knot: knot.name, step: "Étape " + uiStep + " sur " + knot.steps.length + " : " + knot.steps[uiStep - 1].title };
 }
@@ -2482,10 +2659,10 @@ function reportDone(text) {
 }
 // Try the collection form if there is one, then the share sheet, then the clipboard.
 function reportDeliver(w, message, device) {
-  var text = "Nœuds marins, problème signalé\n" + w.knot + "\n" + w.step + "\n\n" + message + "\n\nAppareil : " + device;
+  var text = "Manuel du matelot, problème signalé\n" + w.knot + "\n" + w.step + "\n\n" + message + "\n\nAppareil : " + device;
   function byHand() {
     if (navigator.share) {
-      return navigator.share({ title: "Nœuds marins : problème signalé", text: text }).then(function () {
+      return navigator.share({ title: "Manuel du matelot : problème signalé", text: text }).then(function () {
         reportDone("Merci ! Votre message est parti vers l'application que vous avez choisie.");
       }, function (err) {
         if (err && err.name === "AbortError") { reportSay("Envoi annulé. Votre message est toujours là."); return; }
@@ -2673,7 +2850,7 @@ function buildHome() {
     sec.cards.push(card); cards.push(card);
   });
   $("tally").textContent = KNOTS.length + " nœuds en 3D, classés en " + sections.length + " familles. Chaque nœud se suit étape par étape.";
-  $("menuFoot").textContent = "Nœuds marins · version d'essai · " + KNOTS.length + " nœuds";
+  $("menuFoot").textContent = "Manuel du matelot · version d'essai · " + KNOTS.length + " nœuds";
   paintMarks();
   if (renderer) thumbQueue = cards.slice();
 }
@@ -2713,6 +2890,7 @@ function paintMarks() {
   $("menuFavNote").textContent = nf ? nf + (nf > 1 ? " nœuds" : " nœud") : "Aucun pour le moment";
   $("menuDoneNote").textContent = nd + (nd > 1 ? " nœuds maîtrisés" : " nœud maîtrisé") + " sur " + KNOTS.length;
   $("menuBar").style.width = Math.round(100 * nd / KNOTS.length) + "%";
+  $("hubKnotsNote").textContent = KNOTS.length + " nœuds" + (nd ? " · " + nd + (nd > 1 ? " maîtrisés" : " maîtrisé") : "");
   favChip.hidden = !nf;
   if (need && need.own) filter();
 }
@@ -2798,7 +2976,8 @@ function setNeed(n, fromRoute) {
     if (n) searchEl.value = "";
     filter();
     if (view === "home") window.scrollTo(0, n ? 0 : libScroll);
-    if (!fromRoute) setHash(n ? "besoin-" + n.id : "");
+    if (n) setHub(false);
+    if (!fromRoute) setHash(n ? "besoin-" + n.id : "noeuds");
   }
   // A tap slides the page. The browser's own back gesture already brings its animation, so that one changes at once.
   if (fromRoute || view !== "home") apply(); else slide(n ? "push" : "pop", apply);
@@ -2843,6 +3022,7 @@ function makeThumb(card) {
   place();
   renderer.render(scene, camera);
   try { card.img.src = canvas.toDataURL("image/webp", 0.9); card.img.hidden = false; } catch (e) {}
+  if (k.id === "chaise" && card.img.src) { $("hubKnotImg").src = card.img.src; $("hubKnotImg").hidden = false; }
   turn = keepTurn;
 }
 
@@ -2854,7 +3034,7 @@ function openKnot(k, fromRoute) {
   if (view === "home") homeScroll = window.pageYOffset || 0;
   view = "knot";
   menuShow(false);
-  homeEl.hidden = true; viewerEl.hidden = false;
+  homeEl.hidden = true; quizEl.hidden = true; viewerEl.hidden = false;
   window.scrollTo(0, 0);
   if (renderer) resize();
   choose(k, 1, 0);
@@ -2864,18 +3044,415 @@ function showHome(fromRoute) {
   if (view === "home") return;
   if (full) setFull(false);
   view = "home";
-  viewerEl.hidden = true; homeEl.hidden = false;
+  viewerEl.hidden = true; quizEl.hidden = true; homeEl.hidden = false;
   window.scrollTo(0, homeScroll);
-  if (!fromRoute) setHash(need ? "besoin-" + need.id : "");
+  if (!fromRoute) { setHub(false); setHash(need ? "besoin-" + need.id : "noeuds"); }
 }
 function route() {
   var id = (location.hash || "").slice(1), k = find(id);
+  if (id === "ripam" || id.indexOf("ripam-") === 0) { openRipam(id.slice(6), true); return; }
   if (k) { openKnot(k, true); return; }
   showHome(true);
   setNeed(needOf(id), true);
+  setHub(!id);
 }
 window.addEventListener("hashchange", route);
 $("back").addEventListener("click", function (ev) { ev.preventDefault(); showHome(); });
+
+/* ---------- quiz: navigation lights (RIPAM, rules 20 to 31) ---------- */
+// A night view 196 x 134 (viewBox from 62, 48), horizon at HZ. A light: colour (w, r, g, y), position, flashing.
+var HZ = 170, CORE = {"w":"#fffaf0","r":"#ff5247","g":"#5dffb0","y":"#ffd24a"};
+function L(c, x, y, f) { return { c: c, x: x, y: y, f: !!f }; }
+// What one sees of a vessel: "face" (it comes towards you), "tribord" (its starboard side: it goes to your
+// right), "babord" (it goes to your left), "arriere" (from astern).
+function sens(v) { return v === "tribord" ? 1 : v === "babord" ? -1 : 0; }
+function cotes(v) {
+  if (v === "face") return [L("g", 150, 140), L("r", 170, 140)];   // its starboard (green) is on your left
+  if (v === "tribord") return [L("g", 162, 140)];
+  if (v === "babord") return [L("r", 158, 140)];
+  return [];
+}
+// Masthead lights: two from 50 m, the forward one lower.
+function mats(v, n) {
+  var s = sens(v);
+  return n === 2 ? [L("w", 160 + 52 * s, 112), L("w", 160 - 34 * s, 86)] : [L("w", 160 + 26 * s, 104)];
+}
+function moteur(v, n) { return v === "arriere" ? [L("w", 160, 144)] : mats(v, n).concat(cotes(v)); }
+// All-round lights in a vertical line.
+function pile(cs, x, top, gap) { return cs.map(function (c, i) { return L(c, x, top + i * (gap || 15)); }); }
+var MOUILLAGE = [L("w", 225, 100), L("w", 95, 128)];   // forward light higher than the aft one
+
+// a[0] is the right answer.
+var FEUX = [
+  { lights: moteur("face", 1), ref: "Règle 23",
+    a: ["Un navire à moteur de moins de 50 m, qui vient vers vous", "Un voilier qui vient vers vous", "Un navire à moteur de plus de 50 m, qui vient vers vous"],
+    why: "Un seul feu de tête de mât, blanc, au-dessus des deux feux de côté : navire à moteur. Vert à votre gauche, rouge à votre droite : il vous montre son avant. Au-delà de 50 m, il porterait un second feu de tête de mât, plus haut et en arrière." },
+  { lights: moteur("tribord", 2), ref: "Règles 21 et 23",
+    a: ["Un navire à moteur de plus de 50 m, qui va vers votre droite", "Un navire à moteur de plus de 50 m, qui va vers votre gauche", "Un remorqueur"],
+    why: "Deux feux de tête de mât décalés : plus de 50 m. Le feu avant est toujours le plus bas : il est à droite, le navire va donc vers la droite, et vous voyez son feu vert, côté tribord. Un remorqueur porte ses feux l'un au-dessus de l'autre, sur le même mât." },
+  { lights: moteur("babord", 2), ref: "Règle 23", q: "Dans quel sens va ce navire ?",
+    a: ["Vers votre gauche", "Vers votre droite", "Vers vous"],
+    why: "Le feu de tête de mât avant est le plus bas : il est à gauche. Le feu rouge le confirme : vous voyez son côté bâbord, il va vers votre gauche. S'il venait vers vous, vous verriez ses deux feux de côté." },
+  { lights: moteur("arriere"), ref: "Règles 21 et 30",
+    a: ["Un navire vu de l'arrière", "Un voilier qui vient vers vous", "Un remorqueur vu de l'arrière"],
+    why: "Un feu blanc seul, bas : le feu de poupe, visible sur 135° vers l'arrière. Un remorqueur y ajouterait un feu jaune au-dessus. Attention : un petit navire au mouillage montre lui aussi un seul feu blanc, visible tout autour de l'horizon." },
+  { lights: cotes("face"), ref: "Règle 25",
+    a: ["Un voilier qui vient vers vous", "Un navire à moteur qui vient vers vous", "Un navire non maître de sa manœuvre, qui fait route"],
+    why: "Les deux feux de côté sans feu blanc au-dessus : navire à voile. Un navire à moteur aurait au moins un feu de tête de mât." },
+  { lights: pile(["r", "g"], 160, 80).concat(cotes("face")), ref: "Règle 25",
+    a: ["Un voilier avec les feux facultatifs rouge sur vert", "Un navire non maître de sa manœuvre", "Un pilote en service"],
+    why: "En tête de mât, rouge au-dessus de vert, visibles tout autour de l'horizon : un voilier peut les ajouter à ses feux de côté, mais pas avec un feu tricolore. Pour s'en souvenir : rouge sur vert, voilier en mer." },
+  { lights: [L("g", 160, 72)], ref: "Règle 25",
+    a: ["Un voilier avec un feu tricolore, qui va vers votre droite", "Un voilier avec un feu tricolore, qui va vers votre gauche", "Un chalutier en pêche"],
+    why: "Un seul feu de couleur, très haut, sans feu blanc : le feu tricolore en tête de mât d'un voilier de moins de 20 m. Vous voyez son secteur vert, côté tribord : il va vers votre droite." },
+  { lights: pile(["g", "w"], 160, 90).concat(cotes("face")), ref: "Règle 26",
+    a: ["Un chalutier en pêche, qui fait route", "Un navire en pêche autre qu'un chalutier", "Un pilote en service"],
+    why: "Vert au-dessus de blanc, visibles tout autour de l'horizon : chalutier en pêche. Avec ses feux de côté, il fait route. Pour s'en souvenir : vert sur blanc, chalutier." },
+  { lights: pile(["g", "w"], 160, 90), ref: "Règle 26",
+    a: ["Un chalutier en pêche, stoppé", "Un chalutier en pêche, qui fait route", "Un navire au mouillage"],
+    why: "Vert sur blanc sans feux de côté : chalutier en pêche, sans erre. Dès qu'il fait route, il allume ses feux de côté et son feu de poupe." },
+  { lights: pile(["r", "w"], 160, 90).concat(cotes("face")), ref: "Règle 26",
+    a: ["Un navire en pêche autre qu'un chalutier, qui fait route", "Un chalutier en pêche", "Un navire non maître de sa manœuvre"],
+    why: "Rouge au-dessus de blanc : navire qui pêche aux filets ou aux lignes, pas au chalut. Pour s'en souvenir : rouge sur blanc, pêcheur. Si ses engins s'étendent à plus de 150 m, un feu blanc de plus indique leur direction." },
+  { lights: pile(["r", "r"], 160, 90), ref: "Règles 27 et 30",
+    a: ["Un navire non maître de sa manœuvre, stoppé", "Un navire échoué", "Un navire handicapé par son tirant d'eau"],
+    why: "Deux feux rouges superposés, rien d'autre : navire non maître de sa manœuvre, sans erre. Le moyen mnémotechnique classique : rouge sur rouge, rien ne bouge. Échoué, il montrerait aussi ses feux blancs de mouillage." },
+  { lights: pile(["r", "r"], 160, 90).concat(cotes("face")), ref: "Règles 18 et 27",
+    a: ["Un navire non maître de sa manœuvre, qui fait route", "Un voilier avec les feux facultatifs rouge sur vert", "Un navire à capacité de manœuvre restreinte"],
+    why: "Deux rouges superposés et les feux de côté, sans feu de tête de mât : navire non maître de sa manœuvre qui a de l'erre. Il ne peut pas s'écarter de votre route : c'est à vous de l'éviter." },
+  { lights: pile(["r", "w", "r"], 176, 64).concat(mats("face", 1), cotes("face")), ref: "Règles 18 et 27",
+    a: ["Un navire à capacité de manœuvre restreinte, qui fait route", "Un navire handicapé par son tirant d'eau", "Un navire non maître de sa manœuvre"],
+    why: "Rouge, blanc, rouge superposés : navire à capacité de manœuvre restreinte (drague, câblier, ravitaillement à la mer…). Avec son feu de tête de mât et ses feux de côté, il fait route. Il est privilégié : écartez-vous." },
+  { lights: pile(["r", "r", "r"], 178, 60).concat(mats("face", 2), cotes("face")), ref: "Règles 18 et 28",
+    a: ["Un navire handicapé par son tirant d'eau", "Un navire à capacité de manœuvre restreinte", "Un navire échoué"],
+    why: "Trois feux rouges superposés, en plus des feux d'un navire à moteur : navire handicapé par son tirant d'eau, qui ne peut pas quitter le chenal. Ne gênez pas son passage." },
+  { lights: pile(["w", "r"], 160, 90).concat(cotes("face")), ref: "Règle 29",
+    a: ["Un pilote en service, qui fait route", "Un navire en pêche autre qu'un chalutier", "Un navire à capacité de manœuvre restreinte"],
+    why: "Blanc au-dessus de rouge, en tête de mât : bateau pilote en service. Avec ses feux de côté, il fait route. Pour s'en souvenir : blanc sur rouge, pilote à bord." },
+  { lights: MOUILLAGE, ref: "Règles 23 et 30",
+    a: ["Un navire de plus de 50 m au mouillage", "Un navire à moteur de plus de 50 m, qui fait route", "Un remorqueur qui fait route"],
+    why: "Deux feux blancs, le plus haut à l'avant, sans feux de côté : navire de plus de 50 m au mouillage. En route, c'est l'inverse : le feu de tête de mât avant est le plus bas, et un feu de côté s'y ajoute." },
+  { lights: MOUILLAGE.concat(pile(["r", "r"], 160, 70)), ref: "Règle 30",
+    a: ["Un navire échoué", "Un navire non maître de sa manœuvre", "Un navire au mouillage"],
+    why: "Les deux feux blancs du mouillage et deux feux rouges superposés : navire échoué. Danger : il y a peu d'eau à cet endroit." },
+  { lights: pile(["w", "w"], 160, 92, 13).concat(cotes("face")), ref: "Règle 24",
+    a: ["Un remorqueur avec une remorque de moins de 200 m, qui vient vers vous", "Un remorqueur avec une remorque de plus de 200 m", "Un navire à capacité de manœuvre restreinte"],
+    why: "Deux feux de tête de mât superposés sur le même mât : un navire qui remorque. Trois feux signaleraient une remorque de plus de 200 m. Ne passez jamais entre un remorqueur et sa remorque." },
+  { lights: [L("y", 160, 128), L("w", 160, 144)], ref: "Règle 24",
+    a: ["Un remorqueur vu de l'arrière", "Un aéroglisseur", "Un navire vu de l'arrière, sans rien de particulier"],
+    why: "Le feu jaune au-dessus du feu de poupe blanc est le feu de remorquage : le navire tire une remorque, qui le suit." },
+  { lights: pile(["w", "w", "w"], 184, 74, 13).concat(cotes("tribord")), ref: "Règle 24",
+    a: ["Un remorqueur avec une remorque de plus de 200 m, qui va vers votre droite", "Un remorqueur avec une remorque de moins de 200 m", "Un navire handicapé par son tirant d'eau"],
+    why: "Trois feux de tête de mât superposés : la remorque dépasse 200 m. Le vert : vous voyez son côté tribord, il va vers votre droite. La remorque, longue et peu éclairée, suit derrière." },
+  { lights: [L("y", 160, 84, true)].concat(moteur("face", 1)), ref: "Règle 23",
+    a: ["Un aéroglisseur", "Un remorqueur", "Un navire en pêche"],
+    why: "Un feu jaune à éclats, visible tout autour de l'horizon, en plus des feux d'un navire à moteur : aéroglisseur. Il va vite : repérez-le tôt." },
+  { lights: moteur("face", 1), ref: "Règle 14", q: "Vous êtes à moteur. Il vient droit sur vous. Que faites-vous ?",
+    a: ["Je viens sur tribord", "Je viens sur bâbord", "Je garde mon cap et ma vitesse"],
+    why: "Deux navires à moteur face à face : chacun vient sur tribord, pour se croiser bâbord contre bâbord." },
+  { lights: moteur("babord", 1), ref: "Règle 15", q: "Vous êtes à moteur, sur une route de collision avec lui. Qui manœuvre ?",
+    a: ["Moi : je l'ai sur ma droite, je m'écarte", "Lui : je garde mon cap et ma vitesse", "Les deux : chacun vient sur bâbord"],
+    why: "Vous voyez son feu rouge : il vous a sur sa gauche, vous l'avez sur votre droite. Entre navires à moteur qui se croisent, celui qui a l'autre sur sa droite s'écarte, de préférence en passant derrière lui. Pour s'en souvenir : feu rouge, je laisse passer." },
+  { lights: moteur("tribord", 1), ref: "Règles 15 et 17", q: "Vous êtes à moteur, sur une route de collision avec lui. Qui manœuvre ?",
+    a: ["Lui : je garde mon cap et ma vitesse, en restant vigilant", "Moi : je m'écarte", "Les deux : chacun vient sur tribord"],
+    why: "Vous voyez son feu vert : il vous a sur sa droite, c'est à lui de s'écarter. Vous gardez cap et vitesse, mais vous devez agir s'il ne manœuvre pas à temps." },
+  { lights: cotes("face"), ref: "Règles 9, 13 et 18", q: "Vous êtes à moteur. Qui s'écarte ?",
+    a: ["Moi : un navire à moteur s'écarte d'un voilier", "Chacun vient sur tribord, comme entre deux navires à moteur", "Lui : un voilier manœuvre plus facilement"],
+    why: "Feux de côté sans feu de tête de mât : c'est un voilier. Un navire à moteur s'écarte de sa route, sauf s'il le rattrape, ou dans un chenal étroit où le voilier ne doit pas le gêner." }
+];
+
+var quizEl = $("quiz"), QUIZ_N = 10, quiz = null, rev = null, ripamMode = null, hub = false;
+function shuffle(list) {
+  var a = list.slice();
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+function lower(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+function nightMarkup(lights) {
+  return lights.map(function (l) {
+    return '<g' + (l.f ? ' class="blink"' : '') + '>' +
+      '<rect x="' + (l.x - 1.4) + '" y="' + (HZ + 2) + '" width="2.8" height="12" fill="url(#refl-' + l.c + ')"></rect>' +
+      '<circle cx="' + l.x + '" cy="' + l.y + '" r="13" fill="url(#halo-' + l.c + ')"></circle>' +
+      '<circle cx="' + l.x + '" cy="' + l.y + '" r="3" fill="' + CORE[l.c] + '"></circle></g>';
+  }).join("");
+}
+function nightSvg(lights) {
+  return '<svg class="night" viewBox="62 48 196 134" aria-hidden="true">' +
+    '<rect x="62" y="48" width="196" height="122" fill="url(#nightSky)"></rect>' +
+    '<rect x="62" y="170" width="196" height="12" fill="#010205"></rect>' +
+    '<line x1="62" y1="170" x2="258" y2="170" stroke="#13232f" stroke-width="0.6"></line>' +
+    nightMarkup(lights) + '</svg>';
+}
+// Seen from above, bow up: the arc over which each light can be seen, in degrees clockwise from right ahead.
+var SECTEUR = { w: "#ffe9c2", r: "#ff4a3d", g: "#2be88f", y: "#ffc23a" };
+function sectorSvg(arcs) {
+  var R = 44, s = '<svg class="night" viewBox="-73 -50 146 100" aria-hidden="true">' +
+    '<line x1="-66" y1="0" x2="66" y2="0" stroke="#2a3f4f" stroke-width="0.8" stroke-dasharray="3 3"></line>' +
+    '<line x1="0" y1="-48" x2="0" y2="48" stroke="#2a3f4f" stroke-width="0.8" stroke-dasharray="3 3"></line>';
+  function at(d) { var t = d * Math.PI / 180; return (R * Math.sin(t)).toFixed(2) + " " + (-R * Math.cos(t)).toFixed(2); }
+  arcs.forEach(function (a) {
+    var col = SECTEUR[a.c], paint = ' fill="' + col + '" fill-opacity="0.22" stroke="' + col + '" stroke-width="1.2" stroke-linejoin="round"';
+    s += a.full ? '<circle r="' + R + '"' + paint + '></circle>'
+      : '<path d="M0 0 L' + at(a.a) + ' A' + R + ' ' + R + ' 0 ' + (a.b - a.a > 180 ? 1 : 0) + ' 1 ' + at(a.b) + ' Z"' + paint + '></path>';
+  });
+  return s + '<path d="M0 -20 C7 -11 8 4 6 18 L-6 18 C-8 4 -7 -11 0 -20 Z" fill="#9fb2bf" stroke="#dfe8ee" stroke-width="0.6"></path></svg>';
+}
+var REGLES = [
+  { title: "Les feux et leurs secteurs", items: [
+    { arcs: [{ c: "w", a: -112.5, b: 112.5 }], name: "Feu de tête de mât", ref: "Règle 21",
+      text: "Blanc, visible sur 225° : de l'avant jusqu'à 22,5° en arrière du travers, de chaque bord. Il signale un navire à moteur qui fait route. Au-delà de 50 m, un second feu, plus haut et en arrière, s'y ajoute." },
+    { arcs: [{ c: "r", a: -112.5, b: 0 }, { c: "g", a: 0, b: 112.5 }], name: "Feux de côté", ref: "Règle 21",
+      text: "Vert à tribord, rouge à bâbord, chacun sur 112,5° : de l'avant jusqu'à 22,5° en arrière du travers. De face, on voit les deux ; de côté, un seul, celui du bord que le navire vous présente." },
+    { arcs: [{ c: "w", a: 112.5, b: 247.5 }], name: "Feu de poupe", ref: "Règle 21",
+      text: "Blanc, visible sur 135° vers l'arrière, soit 67,5° de part et d'autre de l'axe. Il prend le relais exactement là où les feux de côté et de tête de mât cessent d'être visibles." },
+    { arcs: [{ c: "y", a: 112.5, b: 247.5 }], name: "Feu de remorquage", ref: "Règle 21",
+      text: "Jaune, sur le même secteur que le feu de poupe, placé au-dessus de lui. Il signale un navire qui remorque." },
+    { arcs: [{ c: "w", full: true }], name: "Feu visible sur tout l'horizon", ref: "Règle 21",
+      text: "Visible sur 360°. Les feux qui disent ce que fait le navire (pêche, mouillage, manœuvre limitée, pilote) sont de ce type, souvent superposés. Un feu à éclats émet au moins 120 éclats par minute." }
+  ]},
+  { title: "Navires qui font route", items: [
+    { lights: moteur("face", 1), name: "Navire à moteur de moins de 50 m", ref: "Règle 23",
+      text: "Un feu de tête de mât, deux feux de côté, un feu de poupe. Vu de face : le vert à votre gauche, le rouge à votre droite. Sous 12 m, un feu blanc visible sur tout l'horizon peut remplacer le feu de tête de mât et le feu de poupe." },
+    { lights: moteur("tribord", 2), name: "Navire à moteur de plus de 50 m", ref: "Règle 23",
+      text: "Deux feux de tête de mât, celui de l'arrière plus haut que celui de l'avant : leur décalage donne le sens de marche. Ici l'avant est à droite, et le feu vert confirme qu'il présente son côté tribord." },
+    { lights: cotes("face"), name: "Navire à voile", ref: "Règle 25",
+      text: "Feux de côté et feu de poupe, sans feu de tête de mât. Dès qu'il avance au moteur, même voiles hautes, c'est un navire à moteur et il en porte les feux." },
+    { lights: [L("g", 160, 72)], name: "Voilier de moins de 20 m, feu tricolore", ref: "Règle 25",
+      text: "Les feux de côté et de poupe réunis dans une seule lanterne en tête de mât, bien visible au-dessus des vagues. Ici, vous voyez son secteur vert." },
+    { lights: pile(["r", "g"], 160, 80).concat(cotes("face")), name: "Voilier avec les feux facultatifs", ref: "Règle 25",
+      text: "En tête de mât, rouge au-dessus de vert, visibles sur tout l'horizon, en plus des feux de côté et de poupe. Ils ne se portent pas avec un feu tricolore." },
+    { lights: [L("y", 160, 84, true)].concat(moteur("face", 1)), name: "Aéroglisseur", ref: "Règle 23",
+      text: "Quand il se déplace sur coussin d'air : les feux d'un navire à moteur et un feu jaune à éclats, visible sur tout l'horizon." }
+  ]},
+  { title: "Navires en pêche", items: [
+    { lights: pile(["g", "w"], 160, 90).concat(cotes("face")), name: "Chalutier", ref: "Règle 26",
+      text: "Vert au-dessus de blanc, visibles sur tout l'horizon. Feux de côté et de poupe quand il fait route, éteints quand il est stoppé. Au-delà de 50 m, il ajoute un feu de tête de mât en arrière et plus haut que le vert." },
+    { lights: pile(["r", "w"], 160, 90).concat(cotes("face")), name: "Autre navire en pêche", ref: "Règle 26",
+      text: "Rouge au-dessus de blanc : pêche aux filets ou aux lignes. Feux de côté et de poupe quand il fait route. Si ses engins s'étendent à plus de 150 m, un feu blanc de plus en indique la direction." }
+  ]},
+  { title: "Navires gênés dans leur manœuvre", items: [
+    { lights: pile(["r", "r"], 160, 90).concat(cotes("face")), name: "Navire non maître de sa manœuvre", ref: "Règle 27",
+      text: "Deux feux rouges superposés, visibles sur tout l'horizon : avarie de barre ou de moteur, par exemple. Feux de côté et de poupe seulement s'il a de l'erre, jamais de feu de tête de mât." },
+    { lights: pile(["r", "w", "r"], 176, 64).concat(mats("face", 1), cotes("face")), name: "Navire à capacité de manœuvre restreinte", ref: "Règle 27",
+      text: "Rouge, blanc, rouge superposés : drague, câblier, ravitaillement à la mer… Il y ajoute les feux d'un navire à moteur s'il fait route, ou ses feux de mouillage s'il est au mouillage." },
+    { lights: pile(["r", "r", "r"], 178, 60).concat(mats("face", 2), cotes("face")), name: "Navire handicapé par son tirant d'eau", ref: "Règle 28",
+      text: "Trois feux rouges superposés, en plus des feux d'un navire à moteur. Il ne peut pas s'écarter du chenal : ne gênez pas son passage." }
+  ]},
+  { title: "Pilote et remorquage", items: [
+    { lights: pile(["w", "r"], 160, 90).concat(cotes("face")), name: "Bateau pilote en service", ref: "Règle 29",
+      text: "Blanc au-dessus de rouge, en tête de mât. Feux de côté et de poupe quand il fait route, feux de mouillage quand il est au mouillage." },
+    { lights: pile(["w", "w"], 160, 92, 13).concat(cotes("face")), name: "Remorqueur, vu de face", ref: "Règle 24",
+      text: "Deux feux de tête de mât superposés, trois si la remorque dépasse 200 m, avec ses feux de côté. La remorque porte elle aussi des feux de côté et un feu de poupe." },
+    { lights: [L("y", 160, 128), L("w", 160, 144)], name: "Remorqueur, vu de l'arrière", ref: "Règle 24",
+      text: "Le feu de remorquage jaune, au-dessus du feu de poupe blanc. Ne passez jamais entre un remorqueur et sa remorque." }
+  ]},
+  { title: "Au mouillage, échoué", items: [
+    { lights: MOUILLAGE, name: "Navire au mouillage", ref: "Règle 30",
+      text: "Un feu blanc à l'avant et un autre, plus bas, à l'arrière, visibles sur tout l'horizon. Sous 50 m, un seul feu blanc suffit. Au-delà de 100 m, il éclaire aussi ses ponts." },
+    { lights: MOUILLAGE.concat(pile(["r", "r"], 160, 70)), name: "Navire échoué", ref: "Règle 30",
+      text: "Ses feux de mouillage et deux feux rouges superposés. Signal de danger : il y a peu d'eau à cet endroit." }
+  ]}
+];
+
+/* ---------- home: choose a subject ---------- */
+function setHub(on) {
+  hub = !!on;
+  if (hub && need) setNeed(null, true);
+  homeEl.classList.toggle("in-hub", hub);
+}
+function goHub() { showHome(true); setHub(true); setHash(""); window.scrollTo(0, 0); }
+function quizBest() { try { return Number(localStorage.getItem("nm-feux-meilleur")) || 0; } catch (e) { return 0; } }
+function paintRipamNotes() {
+  var b = quizBest();
+  $("ripamBest").textContent = b ? "Meilleur score : " + b + "/" + QUIZ_N : "Séries de " + QUIZ_N + " cartes";
+  $("hubRipamNote").textContent = FEUX.length + " situations" + (b ? " · meilleur score " + b + "/" + QUIZ_N : "");
+}
+
+/* ---------- the lights section: menu, quiz, rules, revision cards ---------- */
+function openRipam(mode, fromRoute) {
+  mode = mode === "quiz" || mode === "reglement" || mode === "revisions" ? mode : "";
+  if (view === "ripam" && ripamMode === mode) return;
+  if (full) setFull(false);
+  if (view === "home") homeScroll = window.pageYOffset || 0;
+  view = "ripam"; ripamMode = mode;
+  menuShow(false);
+  homeEl.hidden = true; viewerEl.hidden = true; quizEl.hidden = false;
+  $("ripamMenu").hidden = !!mode;
+  $("quizCard").hidden = true; $("quizEnd").hidden = true;
+  $("rules").hidden = mode !== "reglement";
+  $("revise").hidden = mode !== "revisions";
+  $("quizBack").textContent = mode ? "‹ Feux de navigation" : "‹ Accueil";
+  $("ripamKicker").textContent = mode ? "Feux de navigation" : "RIPAM";
+  $("ripamTitle").textContent = mode === "quiz" ? "Quiz" : mode === "reglement" ? "Règlement" : mode === "revisions" ? "Révisions" : "Feux de navigation";
+  if (mode === "quiz") quizStart();
+  else if (mode === "reglement") { buildRules(); $("quizCount").textContent = "Règles 20 à 31 du RIPAM, l'essentiel de chaque feu"; }
+  else if (mode === "revisions") reviseStart();
+  else { $("quizCount").textContent = "Règlement international pour prévenir les abordages en mer"; paintRipamNotes(); }
+  window.scrollTo(0, 0);
+  if (!fromRoute) setHash(mode ? "ripam-" + mode : "ripam");
+}
+function ripamBack() {
+  if (ripamMode) slide("pop", function () { openRipam(""); });
+  else slide("pop", goHub);
+}
+function ripamWhere() {
+  if (ripamMode === "quiz" && quiz && !$("quizCard").hidden) return { knot: "Feux · quiz", step: "Carte : " + quiz.cards[quiz.i].a[0] };
+  if (ripamMode === "revisions" && rev) return { knot: "Feux · révisions", step: "Carte : " + rev.deck[rev.i].a[0] };
+  return { knot: "Feux de navigation", step: ripamMode === "reglement" ? "Règlement" : ripamMode === "quiz" ? "Fin de série" : "Accueil des feux" };
+}
+
+// Quiz: three answers, a score.
+function quizCount() {
+  $("quizCount").textContent = "Carte " + (quiz.i + 1) + " sur " + quiz.cards.length + " · " + quiz.score + (quiz.score > 1 ? " bonnes réponses" : " bonne réponse");
+}
+function quizStart() {
+  quiz = { cards: shuffle(FEUX).slice(0, QUIZ_N), i: 0, score: 0, misses: [] };
+  $("quizEnd").hidden = true; $("quizCard").hidden = false;
+  quizShow();
+}
+function quizShow() {
+  var c = quiz.cards[quiz.i], box = $("quizAnswers"), card = $("quizCard");
+  quizCount();
+  $("quizNight").innerHTML = nightSvg(c.lights);
+  $("quizQ").textContent = c.q || "Que voyez-vous ?";
+  box.textContent = "";
+  shuffle(c.a.map(function (t, k) { return { t: t, ok: k === 0 }; })).forEach(function (ans) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "quiz-answer"; b.textContent = ans.t;
+    if (ans.ok) b.setAttribute("data-ok", "1");
+    b.addEventListener("click", function () { quizAnswer(b); });
+    box.appendChild(b);
+  });
+  $("quizWhy").hidden = true;
+  card.classList.remove("swap"); void card.offsetWidth; card.classList.add("swap");
+}
+function quizAnswer(b) {
+  if (!$("quizWhy").hidden) return;
+  var c = quiz.cards[quiz.i], ok = b.hasAttribute("data-ok"), last = quiz.i + 1 >= quiz.cards.length;
+  $("quizAnswers").querySelectorAll("button").forEach(function (x) {
+    x.disabled = true;
+    if (x.hasAttribute("data-ok")) x.classList.add("right");
+  });
+  if (ok) quiz.score++; else { b.classList.add("wrong"); quiz.misses.push(c); }
+  buzz(ok ? 10 : [30, 40, 30]);
+  $("quizVerdict").textContent = ok ? "Bonne réponse" : "La bonne réponse : " + lower(c.a[0]) + ".";
+  $("quizVerdict").className = "quiz-verdict " + (ok ? "is-ok" : "is-ko");
+  $("quizText").textContent = c.why;
+  $("quizRef").textContent = "RIPAM, " + lower(c.ref);
+  $("quizNext").textContent = last ? "Voir mon score" : "Carte suivante";
+  $("quizWhy").hidden = false;
+  quizCount();
+  try { $("quizWhy").scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }); } catch (e) {}
+}
+function quizNext() {
+  if (quiz.i + 1 < quiz.cards.length) { quiz.i++; quizShow(); window.scrollTo(0, 0); }
+  else quizFinish();
+}
+function quizFinish() {
+  var n = quiz.cards.length, s = quiz.score, best = quizBest(), list = $("quizMisses");
+  if (s > best) try { localStorage.setItem("nm-feux-meilleur", String(s)); } catch (e) {}
+  $("quizCard").hidden = true; $("quizEnd").hidden = false;
+  $("quizCount").textContent = "Série terminée";
+  $("quizScore").textContent = s + " / " + n;
+  $("quizMsg").textContent = (s === n ? "Sans faute : vous lisez la nuit comme le jour."
+    : s >= 7 ? "Bien joué. Revoyez les cartes manquées ci-dessous."
+    : "Les feux demandent de l'entraînement : refaites une série, les cartes changent à chaque fois.")
+    + (best && s > best ? " Nouveau record !" : "");
+  list.textContent = "";
+  quiz.misses.forEach(function (c) {
+    var li = document.createElement("li");
+    li.textContent = c.a[0];
+    list.appendChild(li);
+  });
+  list.hidden = !quiz.misses.length;
+  paintRipamNotes();
+  window.scrollTo(0, 0);
+}
+
+// Rules: each light, its diagram and what it says. Built the first time it is opened.
+var rulesBuilt = false;
+function buildRules() {
+  if (rulesBuilt) return;
+  rulesBuilt = true;
+  var host = $("rules");
+  REGLES.forEach(function (grp) {
+    var sec = document.createElement("section"), title = document.createElement("h2"), grid = document.createElement("div");
+    sec.className = "rules-group"; title.textContent = grp.title; grid.className = "rules-grid";
+    grp.items.forEach(function (it) {
+      var art = document.createElement("article"), name = document.createElement("h3"), text = document.createElement("p"), ref = document.createElement("p");
+      art.className = "rule";
+      art.innerHTML = it.arcs ? sectorSvg(it.arcs) : nightSvg(it.lights);
+      name.textContent = it.name; text.textContent = it.text;
+      ref.className = "quiz-ref"; ref.textContent = "RIPAM, " + lower(it.ref);
+      art.appendChild(name); art.appendChild(text); art.appendChild(ref);
+      grid.appendChild(art);
+    });
+    sec.appendChild(title); sec.appendChild(grid);
+    host.appendChild(sec);
+  });
+  var foot = document.createElement("p"), btn = document.createElement("button");
+  foot.className = "quiz-ref";
+  btn.type = "button"; btn.className = "linkish"; btn.textContent = "Signaler une erreur dans le règlement";
+  btn.addEventListener("click", reportOpen);
+  foot.appendChild(btn); host.appendChild(foot);
+}
+
+// Revision cards: random cards, the question in front and the answer on the back, no score.
+function reviseStart() { rev = { deck: shuffle(FEUX), i: 0 }; reviseShow(); }
+function reviseShow() {
+  var c = rev.deck[rev.i], flip = $("flip"), box = $("revise");
+  flip.classList.add("instant"); flip.classList.remove("turned"); void flip.offsetWidth; flip.classList.remove("instant");
+  $("revNight").innerHTML = nightSvg(c.lights);
+  $("revQ").textContent = c.q || "Que voyez-vous ?";
+  $("revA").textContent = c.a[0];
+  $("revWhy").textContent = c.why;
+  $("revRef").textContent = "RIPAM, " + lower(c.ref);
+  paintTurn(false);
+  $("quizCount").textContent = "Carte " + (rev.i + 1) + " sur " + rev.deck.length + " · sans score";
+  box.classList.remove("swap"); void box.offsetWidth; box.classList.add("swap");
+}
+function paintTurn(on) {
+  $("revTurn").textContent = on ? "Revoir la question" : "Voir la réponse";
+  $("flip").querySelector(".front").setAttribute("aria-hidden", on ? "true" : "false");
+  $("flip").querySelector(".back").setAttribute("aria-hidden", on ? "false" : "true");
+}
+function reviseTurn() { paintTurn($("flip").classList.toggle("turned")); }
+function reviseNext() {
+  rev.i++;
+  if (rev.i >= rev.deck.length) rev = { deck: shuffle(FEUX), i: 0 };
+  reviseShow();
+  window.scrollTo(0, 0);
+}
+
+$("quizBack").addEventListener("click", ripamBack);
+$("quizHome").addEventListener("click", function () { slide("pop", function () { openRipam(""); }); });
+$("quizNext").addEventListener("click", quizNext);
+$("quizAgain").addEventListener("click", function () { quizStart(); window.scrollTo(0, 0); });
+$("quizReport").addEventListener("click", reportOpen);
+$("flip").addEventListener("click", reviseTurn);
+$("revTurn").addEventListener("click", reviseTurn);
+$("revNext").addEventListener("click", reviseNext);
+$("revReport").addEventListener("click", function (ev) { ev.stopPropagation(); reportOpen(); });
+Array.prototype.forEach.call(document.querySelectorAll(".ripam-choice"), function (a) {
+  a.addEventListener("click", function (ev) { ev.preventDefault(); slide("push", function () { openRipam(a.getAttribute("data-mode")); }); });
+});
+$("hubKnots").addEventListener("click", function (ev) { ev.preventDefault(); slide("push", function () { setHub(false); setHash("noeuds"); window.scrollTo(0, 0); }); });
+$("hubRipam").addEventListener("click", function (ev) { ev.preventDefault(); slide("push", function () { openRipam(""); }); });
+$("libBack").addEventListener("click", function () { slide("pop", function () { setHub(true); setHash(""); window.scrollTo(0, 0); }); });
+// Quiz: keys 1, 2, 3 answer, the right arrow moves on. Cards: space turns, the right arrow moves on. Escape goes back.
+window.addEventListener("keydown", function (ev) {
+  if (view !== "ripam" || reportDlg.open) return;
+  if (ev.key === "Escape") { ripamBack(); return; }
+  if (ripamMode === "quiz" && quiz && !$("quizCard").hidden) {
+    var answered = !$("quizWhy").hidden, bs = $("quizAnswers").querySelectorAll("button");
+    if (/^[1-3]$/.test(ev.key) && !answered) bs[Number(ev.key) - 1].click();
+    else if (ev.key === "ArrowRight" && answered) quizNext();
+  } else if (ripamMode === "revisions" && rev) {
+    if (ev.key === " " && ev.target === document.body) { ev.preventDefault(); reviseTurn(); }
+    else if (ev.key === "ArrowRight") reviseNext();
+  }
+});
+paintRipamNotes();
 
 function start(saved) {
   saved = saved || {};
@@ -2884,7 +3461,8 @@ function start(saved) {
   if (saved.flat) setFlat(true, true);
   var k = find(saved.knot || (location.hash || "").slice(1));
   if (k) { openKnot(k, true); if (saved.step) go(saved.step, saved.step); }
-  else { showHome(true); setNeed(needOf((location.hash || "").slice(1)), true); }
+  else if (/^#ripam(-|$)/.test(location.hash)) openRipam(location.hash.slice(7), true);
+  else { showHome(true); setNeed(needOf((location.hash || "").slice(1)), true); setHub(!(location.hash || "").slice(1)); }
   if (renderer) requestAnimationFrame(frame);
 }
 

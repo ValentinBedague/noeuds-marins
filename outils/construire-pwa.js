@@ -34,7 +34,7 @@ function page() {
 <meta name="theme-color" content="#12283a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Nœuds marins">
+<meta name="apple-mobile-web-app-title" content="Matelot">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -63,9 +63,9 @@ function build() {
   }
   const html = page();
   const manifest = JSON.stringify({
-    name: "Nœuds marins",
-    short_name: "Nœuds",
-    description: "Les nœuds marins en 3D, étape par étape.",
+    name: "Manuel du matelot",
+    short_name: "Matelot",
+    description: "Les nœuds en 3D et les feux de navigation, pour apprendre et réviser.",
     lang: "fr",
     start_url: "./",
     scope: "./",

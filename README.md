@@ -1,6 +1,6 @@
-# Nœuds marins
+# Manuel du matelot
 
-Bibliothèque de nœuds marins en 3D : chaque nœud se suit étape par étape, se tourne et se zoome.
+Les nœuds marins en 3D, étape par étape, et les feux de navigation (RIPAM) : quiz, règlement et cartes de révision.
 Application web installable, utilisable hors ligne une fois ouverte.
 
 ## Organisation
